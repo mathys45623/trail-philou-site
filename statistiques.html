@@ -94,6 +94,9 @@
       const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
       document.getElementById('userName').textContent = name;
       document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
+    } else {
+      const wall = document.getElementById('authWall');
+      if (wall) wall.style.display = 'flex';
     }
 
     const { data: stats } = await sb.from('stats').select('*').single();
@@ -142,6 +145,79 @@
   document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
 
   loadPage();
+</script>
+
+<!-- ─── MODAL CONNEXION ─── -->
+<div id="authWall" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(15,26,33,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:2.5rem;width:100%;max-width:400px;margin:1rem;box-shadow:0 24px 80px rgba(0,0,0,0.2);">
+    <div style="font-family:Montserrat,sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:0.25rem">Bienvenue !</div>
+    <div style="color:#8fa3b0;font-size:0.875rem;margin-bottom:1.5rem">Connectez-vous pour accéder à ce contenu</div>
+    <div style="display:flex;border-bottom:2px solid #eef2f5;margin-bottom:1.5rem">
+      <button onclick="awShowTab('login')" id="awTabLogin" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#1a8fd1;border-bottom:2px solid #1a8fd1;margin-bottom:-2px">Connexion</button>
+      <button onclick="awShowTab('signup')" id="awTabSignup" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#8fa3b0;border-bottom:2px solid transparent;margin-bottom:-2px">Inscription</button>
+    </div>
+    <div id="awLogin">
+      <input id="awLoginEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <input id="awLoginPass" type="password" placeholder="Mot de passe" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <button onclick="awLogin()" id="awBtnLogin" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Se connecter</button>
+      <div id="awLoginMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
+    </div>
+    <div id="awSignup" style="display:none">
+      <input id="awSignupName" type="text" placeholder="Prénom" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <input id="awSignupEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <input id="awSignupPass" type="password" placeholder="Mot de passe (6 car. min)" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <button onclick="awSignup()" id="awBtnSignup" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Créer mon compte</button>
+      <div id="awSignupMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function awShowTab(tab) {
+    document.getElementById('awLogin').style.display = tab==='login' ? '' : 'none';
+    document.getElementById('awSignup').style.display = tab==='signup' ? '' : 'none';
+    document.getElementById('awTabLogin').style.cssText += tab==='login' ? ';color:#1a8fd1;border-bottom:2px solid #1a8fd1' : ';color:#8fa3b0;border-bottom:2px solid transparent';
+    document.getElementById('awTabSignup').style.cssText += tab==='signup' ? ';color:#1a8fd1;border-bottom:2px solid #1a8fd1' : ';color:#8fa3b0;border-bottom:2px solid transparent';
+  }
+  function awMsg(id, txt, type) {
+    const el = document.getElementById(id);
+    el.textContent = txt;
+    el.style.display = '';
+    el.style.background = type==='error' ? '#fee2e2' : '#e8f7ee';
+    el.style.color = type==='error' ? '#b91c1c' : '#0d5230';
+  }
+  async function awLogin() {
+    const email = document.getElementById('awLoginEmail').value;
+    const pass = document.getElementById('awLoginPass').value;
+    if (!email || !pass) return awMsg('awLoginMsg','Remplissez tous les champs.','error');
+    const btn = document.getElementById('awBtnLogin');
+    btn.disabled=true; btn.textContent='Connexion…';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    btn.disabled=false; btn.textContent='Se connecter';
+    if (error) return awMsg('awLoginMsg','Email ou mot de passe incorrect.','error');
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
+    if (profile?.role === 'admin') { window.location.href = 'dashboard.html'; return; }
+    document.getElementById('authWall').style.display = 'none';
+    updateUserUI(data.user);
+  }
+  async function awSignup() {
+    const name = document.getElementById('awSignupName').value;
+    const email = document.getElementById('awSignupEmail').value;
+    const pass = document.getElementById('awSignupPass').value;
+    if (!name || !email || !pass) return awMsg('awSignupMsg','Remplissez tous les champs.','error');
+    const btn = document.getElementById('awBtnSignup');
+    btn.disabled=true; btn.textContent='Création…';
+    const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+    btn.disabled=false; btn.textContent='Créer mon compte';
+    if (error) return awMsg('awSignupMsg', error.message, 'error');
+    const { data: loginData } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (loginData?.user) { document.getElementById('authWall').style.display='none'; updateUserUI(loginData.user); }
+  }
+  function updateUserUI(user) {
+    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    const bottom = document.getElementById('userBottom');
+    if (bottom) { bottom.style.display=''; document.getElementById('userName').textContent=name; document.getElementById('userAv').textContent=name.charAt(0).toUpperCase(); }
+  }
 </script>
 </body>
 </html>
