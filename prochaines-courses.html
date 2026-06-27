@@ -228,54 +228,6 @@
 
   document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
 
-  // ─── AUTH MODAL LOGIC ───
-  const authOverlay = document.getElementById('authOverlay');
-
-  document.querySelectorAll('.auth-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tabLogin').style.display = btn.dataset.tab === 'login' ? '' : 'none';
-      document.getElementById('tabSignup').style.display = btn.dataset.tab === 'signup' ? '' : 'none';
-    });
-  });
-
-  function showMsg(id, txt, type) {
-    const el = document.getElementById(id);
-    el.textContent = txt; el.className = 'auth-msg ' + type; el.style.display = '';
-    setTimeout(() => el.style.display = 'none', 5000);
-  }
-
-  document.getElementById('btnLogin').addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail').value;
-    const pass = document.getElementById('loginPassword').value;
-    if (!email || !pass) return showMsg('loginMsg', 'Remplissez tous les champs.', 'error');
-    const btn = document.getElementById('btnLogin');
-    btn.disabled = true; btn.textContent = 'Connexion…';
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    btn.disabled = false; btn.textContent = 'Se connecter';
-    if (error) return showMsg('loginMsg', 'Email ou mot de passe incorrect.', 'error');
-    authOverlay.classList.remove('open');
-    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
-    if (profile?.role === 'admin') { window.location.href = 'dashboard.html'; return; }
-    window.location.reload();
-  });
-
-  document.getElementById('btnSignup').addEventListener('click', async () => {
-    const name = document.getElementById('signupName').value;
-    const email = document.getElementById('signupEmail').value;
-    const pass = document.getElementById('signupPassword').value;
-    if (!name || !email || !pass) return showMsg('signupMsg', 'Remplissez tous les champs.', 'error');
-    const btn = document.getElementById('btnSignup');
-    btn.disabled = true; btn.textContent = 'Création…';
-    const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    btn.disabled = false; btn.textContent = 'Créer mon compte';
-    if (error) return showMsg('signupMsg', error.message, 'error');
-    const { data: loginData } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (loginData?.user) { authOverlay.classList.remove('open'); window.location.reload(); }
-    else showMsg('signupMsg', 'Compte créé ! Connectez-vous.', 'success');
-  });
-
   loadPage();
 </script>
 </body>
