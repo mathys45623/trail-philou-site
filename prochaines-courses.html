@@ -227,7 +227,18 @@
   document.getElementById('lightbox').addEventListener('click', e => { if(e.target===document.getElementById('lightbox')) document.getElementById('lightbox').classList.remove('open'); });
 
   document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
-  loadPage();
+  // ─── VÉRIF CONNEXION ───
+  async function checkAuthGuard() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+      window.location.href = 'index.html?login=required';
+      return false;
+    }
+    return true;
+  }
+
+  checkAuthGuard().then(ok => { if (ok) loadPage(); });
 </script>
 </body>
 </html>
