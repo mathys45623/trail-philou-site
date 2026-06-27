@@ -431,19 +431,28 @@
 
     // Upload image principale (upcoming)
     let image_url = null;
-    const imgFile = document.getElementById('rImgFile').files[0];
+    const imgFileEl = document.getElementById('rImgFile');
+    const imgFile = imgFileEl ? imgFileEl.files[0] : null;
     if (imgFile && kind==='upcoming') {
+      btn.textContent = 'Upload image…';
       try { image_url = await uploadImage(imgFile, 'images', 'races'); } catch(e) { toast('Erreur image : '+e.message,'error'); btn.disabled=false;btn.textContent='💾 Enregistrer';return; }
     }
 
-    // Upload photos multiples
+    // Upload photos multiples (past ET upcoming)
     let images = [];
     if (raceId) {
       const { data: ex } = await sb.from('races').select('images').eq('id',raceId).single();
-      images = ex?.images || [];
+      let exImgs = ex?.images || [];
+      if (typeof exImgs === 'string') {
+        try { exImgs = JSON.parse(exImgs); } catch(e) { exImgs = exImgs.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); }
+      }
+      images = exImgs;
     }
-    const imgFiles = document.getElementById('rImgFiles').files;
+    const imgFilesEl = document.getElementById('rImgFiles');
+    const imgFiles = imgFilesEl ? imgFilesEl.files : [];
+    let uploadCount = 0;
     for (const f of imgFiles) {
+      btn.textContent = `Upload photo ${++uploadCount}…`;
       try { const url = await uploadImage(f, 'images', 'races'); images.push(url); } catch(e) { toast('Erreur photo : '+e.message,'error'); }
     }
 
