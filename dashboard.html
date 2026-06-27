@@ -189,13 +189,24 @@
       <div class="form-group upcoming-field"><label class="form-label">Statut</label>
         <select class="form-select" id="rStatus"><option value="objectif">🎯 Objectif</option><option value="inscrit">✅ Inscrit</option><option value="selection">⚡ En sélection</option></select>
       </div>
-      <div class="form-group upcoming-field"><label class="form-label">Image de la course</label>
+      <div class="form-group upcoming-field"><label class="form-label">Image principale (carte)</label>
         <input type="file" id="rImgFile" accept="image/*" />
         <div class="form-hint">Image affichée sur la carte</div>
+      </div>
+      <div class="form-group upcoming-field full"><label class="form-label">Photos supplémentaires</label>
+        <input type="file" id="rImgFiles" accept="image/*" multiple />
+        <div class="form-hint">Plusieurs photos pour le détail</div>
+        <div id="rImgExisting" style="margin-top:0.5rem"></div>
       </div>
       <!-- Past only -->
       <div class="form-group past-field" style="display:none"><label class="form-label">Temps (ex: 12h34')</label><input class="form-input" id="rTime" /></div>
       <div class="form-group past-field" style="display:none"><label class="form-label">Classement (ex: 23ème/450)</label><input class="form-input" id="rRank" /></div>
+      <div class="form-group past-field full" style="display:none">
+        <label class="form-label">Photos de la course</label>
+        <input type="file" id="rImgFiles" accept="image/*" multiple />
+        <div class="form-hint">JPG, PNG · Plusieurs photos possibles</div>
+        <div id="rImgExisting" style="margin-top:0.5rem"></div>
+      </div>
       <div class="form-group past-field full" style="display:none">
         <label class="form-label">Vidéos de la course</label>
         <input type="file" id="rVidFiles" accept="video/*" multiple />
@@ -386,6 +397,7 @@
     document.querySelectorAll('.past-field').forEach(el => el.style.display = kind==='past' ? '' : 'none');
     ['rName','rDate','rLocation','rDistance','rDplus','rTime','rRank','rNotes'].forEach(i => document.getElementById(i).value = '');
     document.getElementById('rVidExisting').innerHTML = '';
+    document.getElementById('rImgExisting').innerHTML = '';
     if (id) {
       const { data: r } = await sb.from('races').select('*').eq('id',id).single();
       if (r) {
@@ -402,6 +414,9 @@
         if (r.videos?.length) {
           document.getElementById('rVidExisting').innerHTML = `<div style="font-size:0.78rem;color:var(--gray-500);margin-top:0.25rem">Vidéos existantes : ${r.videos.length} · Les nouvelles s'ajouteront</div>`;
         }
+        if (r.images?.length) {
+          document.getElementById('rImgExisting').innerHTML = `<div style="font-size:0.78rem;color:var(--gray-500);margin-top:0.25rem">Photos existantes : ${r.images.length} · Les nouvelles s'ajouteront</div>`;
+        }
       }
     }
     document.getElementById('raceModal').classList.add('open');
@@ -414,11 +429,22 @@
     const btn = document.getElementById('raceModalSave');
     btn.disabled = true; btn.textContent = 'Enregistrement…';
 
-    // Upload image (upcoming)
+    // Upload image principale (upcoming)
     let image_url = null;
     const imgFile = document.getElementById('rImgFile').files[0];
-    if (imgFile) {
+    if (imgFile && kind==='upcoming') {
       try { image_url = await uploadImage(imgFile, 'images', 'races'); } catch(e) { toast('Erreur image : '+e.message,'error'); btn.disabled=false;btn.textContent='💾 Enregistrer';return; }
+    }
+
+    // Upload photos multiples
+    let images = [];
+    if (raceId) {
+      const { data: ex } = await sb.from('races').select('images').eq('id',raceId).single();
+      images = ex?.images || [];
+    }
+    const imgFiles = document.getElementById('rImgFiles').files;
+    for (const f of imgFiles) {
+      try { const url = await uploadImage(f, 'images', 'races'); images.push(url); } catch(e) { toast('Erreur photo : '+e.message,'error'); }
     }
 
     // Upload vidéos (past)
@@ -442,8 +468,8 @@
       type: kind,
       notes: document.getElementById('rNotes').value,
     };
-    if (kind==='upcoming') { payload.status = document.getElementById('rStatus').value; if(image_url) payload.image_url = image_url; }
-    if (kind==='past') { payload.finish_time = document.getElementById('rTime').value; payload.rank = document.getElementById('rRank').value; payload.videos = videos; }
+    if (kind==='upcoming') { payload.status = document.getElementById('rStatus').value; if(image_url) payload.image_url = image_url; payload.images = images; }
+    if (kind==='past') { payload.finish_time = document.getElementById('rTime').value; payload.rank = document.getElementById('rRank').value; payload.videos = videos; payload.images = images; }
 
     let error;
     if (raceId) ({ error } = await sb.from('races').update(payload).eq('id',raceId));
