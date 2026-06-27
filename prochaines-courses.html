@@ -276,37 +276,7 @@
     else showMsg('signupMsg', 'Compte créé ! Connectez-vous.', 'success');
   });
 
-  // Charger la page ET ouvrir modal si non connecté
-  sb.auth.getSession().then(({ data: { session } }) => {
-    loadPage();
-    if (!session) {
-      document.getElementById("authOverlay").classList.add("open");
-    }
-  });
+  loadPage();
 </script>
-<!-- ─── MODAL AUTH ─── -->
-<div class="auth-overlay" id="authOverlay">
-  <div class="auth-modal">
-    <div class="auth-title">Bienvenue !</div>
-    <div class="auth-sub">Connectez-vous pour accéder à ce contenu</div>
-    <div class="auth-tabs">
-      <button class="auth-tab active" data-tab="login">Connexion</button>
-      <button class="auth-tab" data-tab="signup">Inscription</button>
-    </div>
-    <div id="tabLogin">
-      <input class="auth-input" type="email" id="loginEmail" placeholder="Email" />
-      <input class="auth-input" type="password" id="loginPassword" placeholder="Mot de passe" />
-      <button class="auth-submit" id="btnLogin">Se connecter</button>
-      <div class="auth-msg" id="loginMsg"></div>
-    </div>
-    <div id="tabSignup" style="display:none">
-      <input class="auth-input" type="text" id="signupName" placeholder="Prénom" />
-      <input class="auth-input" type="email" id="signupEmail" placeholder="Email" />
-      <input class="auth-input" type="password" id="signupPassword" placeholder="Mot de passe (6 car. min)" />
-      <button class="auth-submit" id="btnSignup">Créer mon compte</button>
-      <div class="auth-msg" id="signupMsg"></div>
-    </div>
-  </div>
-</div>
 </body>
 </html>
