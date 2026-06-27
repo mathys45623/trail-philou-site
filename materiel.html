@@ -2,33 +2,19 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Statistiques — Trail Philou</title>
+  <title>Mon matériel — Trail Philou</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css" />
   <style>
-    .big-stat {
-      background: white; border-radius: var(--r-xl); border: 1px solid var(--gray-200);
-      padding: 2rem; text-align: center;
+    .cat-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .cat-btn {
+      padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.8rem; font-weight: 600;
+      border: 1.5px solid var(--gray-200); background: white; color: var(--gray-600);
+      cursor: pointer; transition: all 0.15s;
     }
-    .big-stat .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-    .big-stat .val {
-      font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 900;
-      background: linear-gradient(135deg, var(--blue), var(--green));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .big-stat .lbl { font-size: 0.8rem; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
-    .big-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
-    .year-bar { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--gray-100); }
-    .year-bar:last-child { border-bottom: none; }
-    .year-label { font-weight: 700; color: var(--gray-800); min-width: 50px; font-size: 0.9rem; }
-    .bar-track { flex: 1; height: 10px; background: var(--gray-100); border-radius: 99px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width 0.8s ease; }
-    .bar-val { font-size: 0.8rem; font-weight: 600; color: var(--gray-600); min-width: 60px; text-align: right; }
-    .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .kpi-box { background: var(--gray-50); border-radius: var(--r-md); padding: 1rem 1.25rem; }
-    .kpi-box .k-val { font-family: 'Montserrat', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--gray-900); }
-    .kpi-box .k-lbl { font-size: 0.75rem; color: var(--gray-400); font-weight: 500; }
+    .cat-btn.active { background: linear-gradient(135deg, var(--blue), var(--green)); color: white; border-color: transparent; }
+    .cat-btn:hover:not(.active) { border-color: var(--blue-mid); color: var(--blue); }
   </style>
 </head>
 <body>
@@ -37,10 +23,10 @@
   <nav class="sidebar-nav">
     <a href="index.html" class="nav-link"><span class="ni">🏠</span> Accueil</a>
     <div class="sidebar-section">Mon trail</div>
-    <a href="statistiques.html" class="nav-link active"><span class="ni">📊</span> Statistiques</a>
+    <a href="statistiques.html" class="nav-link"><span class="ni">📊</span> Statistiques</a>
     <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
     <a href="prochaines-courses.html" class="nav-link"><span class="ni">🗓️</span> Prochaines courses</a>
-    <a href="materiel.html" class="nav-link"><span class="ni">🎒</span> Mon matériel</a>
+    <a href="materiel.html" class="nav-link active"><span class="ni">🎒</span> Mon matériel</a>
     <div style="flex:1"></div>
   </nav>
   <div class="sidebar-bottom" id="userBottom" style="display:none">
@@ -54,32 +40,15 @@
 
 <main class="main">
   <div class="page-header">
-    <div class="page-title">📊 Statistiques</div>
-    <div class="page-sub">Tous mes chiffres en trail</div>
+    <div class="page-title">🎒 Mon matériel</div>
+    <div class="page-sub">Équipement, nutrition et vêtements</div>
   </div>
   <div class="page-content">
-    <div class="big-grid" id="bigGrid">
-      <div class="big-stat"><div class="icon">🏅</div><div class="val" id="stRaces">—</div><div class="lbl">Courses finies</div></div>
-      <div class="big-stat"><div class="icon">🚩</div><div class="val" id="stDnf">—</div><div class="lbl">Courses non finies</div></div>
-      <div class="big-stat"><div class="icon">🏁</div><div class="val" id="stTotal">—</div><div class="lbl">Courses au total</div></div>
-      <div class="big-stat"><div class="icon">🗓️</div><div class="val" id="stYears">—</div><div class="lbl">Années de pratique</div></div>
+    <div class="cat-filters" id="catFilters">
+      <button class="cat-btn active" data-cat="all">Tout voir</button>
     </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">Courses par année</div></div>
-      <div class="card-body" id="yearBars"><p style="color:var(--gray-400)">Chargement…</p></div>
-    </div>
-
-    <div style="margin-top:1.5rem" class="card">
-      <div class="card-header"><div class="card-title">Records personnels</div></div>
-      <div class="card-body">
-        <div class="kpi-row" id="records">
-          <div class="kpi-box"><div class="k-val" id="recBest">—</div><div class="k-lbl">Meilleur classement</div></div>
-          <div class="kpi-box"><div class="k-val" id="recLong">—</div><div class="k-lbl">Plus longue distance (km)</div></div>
-          <div class="kpi-box"><div class="k-val" id="recDplus">—</div><div class="k-lbl">Plus grand D+ (m)</div></div>
-          <div class="kpi-box"><div class="k-val" id="recYear">—</div><div class="k-lbl">Année la plus active</div></div>
-        </div>
-      </div>
+    <div class="mat-grid" id="matGrid">
+      <div class="empty"><div class="empty-icon">⏳</div><p>Chargement…</p></div>
     </div>
   </div>
 </main>
@@ -87,6 +56,10 @@
 <div class="toast" id="toast"></div>
 <script src="shared.js"></script>
 <script>
+  let allItems = [];
+
+  const catEmojis = { 'Chaussures': '👟', 'Vêtements': '👕', 'Sac & Hydratation': '🎒', 'Nutrition': '🍌', 'Électronique': '⌚', 'Accessoires': '🧤', 'Autre': '📦' };
+
   async function loadPage() {
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
@@ -96,98 +69,59 @@
       document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
     }
 
-    const { data: stats } = await sb.from('stats').select('*').single();
-    if (stats) {
-      document.getElementById('stRaces').textContent = stats.total_races || 0;
-      document.getElementById('stDnf').textContent = stats.total_dnf || 0;
-      document.getElementById('stTotal').textContent = (stats.total_races || 0) + (stats.total_dnf || 0);
-      document.getElementById('stYears').textContent = (stats.years_running || 0) + ' ans';
-    }
+    const { data: items } = await sb.from('materiel').select('*').order('categorie');
+    allItems = items || [];
+    buildFilters();
+    renderItems('all');
+  }
 
-    // Courses par année
-    const { data: races } = await sb.from('races').select('date, distance, dplus, rank').eq('type', 'past');
-    if (races && races.length) {
-      const byYear = {};
-      let maxDist = 0, maxDplus = 0, bestRank = null, yearCounts = {};
-      races.forEach(r => {
-        const y = new Date(r.date).getFullYear();
-        byYear[y] = (byYear[y] || 0) + 1;
-        yearCounts[y] = (yearCounts[y] || 0) + 1;
-        if (r.distance && r.distance > maxDist) maxDist = r.distance;
-        if (r.dplus && r.dplus > maxDplus) maxDplus = r.dplus;
-        if (r.rank) {
-          const num = parseInt(r.rank);
-          if (!bestRank || num < parseInt(bestRank)) bestRank = r.rank;
-        }
+  function buildFilters() {
+    const cats = [...new Set(allItems.map(i => i.categorie).filter(Boolean))];
+    const container = document.getElementById('catFilters');
+    cats.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'cat-btn';
+      btn.dataset.cat = cat;
+      btn.textContent = (catEmojis[cat] || '📦') + ' ' + cat;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderItems(cat);
       });
-      const maxCount = Math.max(...Object.values(byYear));
-      const sortedYears = Object.keys(byYear).sort((a,b) => b-a);
-      document.getElementById('yearBars').innerHTML = sortedYears.map(y => `
-        <div class="year-bar">
-          <div class="year-label">${y}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(byYear[y]/maxCount*100)}%"></div></div>
-          <div class="bar-val">${byYear[y]} course${byYear[y]>1?'s':''}</div>
-        </div>`).join('');
+      container.appendChild(btn);
+    });
+    container.querySelector('[data-cat="all"]').addEventListener('click', () => {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      container.querySelector('[data-cat="all"]').classList.add('active');
+      renderItems('all');
+    });
+  }
 
-      document.getElementById('recBest').textContent = bestRank || '—';
-      document.getElementById('recLong').textContent = maxDist ? maxDist + ' km' : '—';
-      document.getElementById('recDplus').textContent = maxDplus ? maxDplus.toLocaleString() + ' m' : '—';
-      const bestYear = Object.entries(yearCounts).sort((a,b) => b[1]-a[1])[0];
-      document.getElementById('recYear').textContent = bestYear ? bestYear[0] + ' (' + bestYear[1] + ' courses)' : '—';
-    } else {
-      document.getElementById('yearBars').innerHTML = '<div class="empty"><div class="empty-icon">📊</div><p>Aucune donnée encore</p></div>';
+  function renderItems(cat) {
+    const filtered = cat === 'all' ? allItems : allItems.filter(i => i.categorie === cat);
+    const el = document.getElementById('matGrid');
+    if (!filtered.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🎒</div><p>Aucun équipement dans cette catégorie</p></div>';
+      return;
     }
+    el.innerHTML = filtered.map(item => `
+      <div class="mat-card">
+        <div class="mat-card-img">
+          ${item.image_url
+            ? `<img src="${item.image_url}" alt="${item.nom}" />`
+            : `<div class="no-img">${catEmojis[item.categorie] || '📦'}</div>`}
+        </div>
+        <div class="mat-card-body">
+          <div class="mat-card-cat">${item.categorie || 'Matériel'}</div>
+          <div class="mat-card-name">${item.nom}</div>
+          ${item.marque ? `<div style="font-size:0.8rem;color:var(--blue);font-weight:600;margin-bottom:0.35rem">${item.marque}</div>` : ''}
+          ${item.description ? `<div class="mat-card-desc">${item.description}</div>` : ''}
+          ${item.avis ? `<div style="margin-top:0.75rem;font-size:0.82rem;color:var(--gray-500);border-top:1px solid var(--gray-100);padding-top:0.6rem">⭐ ${item.avis}</div>` : ''}
+        </div>
+      </div>`).join('');
   }
 
   document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
-
-  // ─── AUTH MODAL LOGIC ───
-  const authOverlay = document.getElementById('authOverlay');
-
-  document.querySelectorAll('.auth-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tabLogin').style.display = btn.dataset.tab === 'login' ? '' : 'none';
-      document.getElementById('tabSignup').style.display = btn.dataset.tab === 'signup' ? '' : 'none';
-    });
-  });
-
-  function showMsg(id, txt, type) {
-    const el = document.getElementById(id);
-    el.textContent = txt; el.className = 'auth-msg ' + type; el.style.display = '';
-    setTimeout(() => el.style.display = 'none', 5000);
-  }
-
-  document.getElementById('btnLogin').addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail').value;
-    const pass = document.getElementById('loginPassword').value;
-    if (!email || !pass) return showMsg('loginMsg', 'Remplissez tous les champs.', 'error');
-    const btn = document.getElementById('btnLogin');
-    btn.disabled = true; btn.textContent = 'Connexion…';
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    btn.disabled = false; btn.textContent = 'Se connecter';
-    if (error) return showMsg('loginMsg', 'Email ou mot de passe incorrect.', 'error');
-    authOverlay.classList.remove('open');
-    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
-    if (profile?.role === 'admin') { window.location.href = 'dashboard.html'; return; }
-    window.location.reload();
-  });
-
-  document.getElementById('btnSignup').addEventListener('click', async () => {
-    const name = document.getElementById('signupName').value;
-    const email = document.getElementById('signupEmail').value;
-    const pass = document.getElementById('signupPassword').value;
-    if (!name || !email || !pass) return showMsg('signupMsg', 'Remplissez tous les champs.', 'error');
-    const btn = document.getElementById('btnSignup');
-    btn.disabled = true; btn.textContent = 'Création…';
-    const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    btn.disabled = false; btn.textContent = 'Créer mon compte';
-    if (error) return showMsg('signupMsg', error.message, 'error');
-    const { data: loginData } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (loginData?.user) { authOverlay.classList.remove('open'); window.location.reload(); }
-    else showMsg('signupMsg', 'Compte créé ! Connectez-vous.', 'success');
-  });
 
   loadPage();
 </script>
