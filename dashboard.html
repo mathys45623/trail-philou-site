@@ -107,8 +107,8 @@
         <div class="card-body">
           <div class="form-grid">
             <div class="form-group"><label class="form-label">Courses terminées</label><input class="form-input" type="number" id="stRaces" /></div>
-            <div class="form-group"><label class="form-label">Kilomètres totaux</label><input class="form-input" type="number" id="stKm" /></div>
-            <div class="form-group"><label class="form-label">Dénivelé positif total (m)</label><input class="form-input" type="number" id="stDplus" /></div>
+            <div class="form-group"><label class="form-label">Courses non finies (DNF)</label><input class="form-input" type="number" id="stDnf" /></div>
+            <div class="form-group"><label class="form-label">Courses au total</label><input class="form-input" type="number" id="stTotal" readonly style="background:var(--gray-50);color:var(--gray-400)" placeholder="Calculé automatiquement" /></div>
             <div class="form-group"><label class="form-label">Années de pratique</label><input class="form-input" type="number" id="stYears" /></div>
           </div>
           <div class="save-bar"><button class="btn btn-primary" id="btnSaveStats">💾 Enregistrer</button></div>
@@ -324,10 +324,10 @@
   // ─── STATS ───
   async function loadStats() {
     const { data: s } = await sb.from('stats').select('*').single();
-    if (s) { document.getElementById('stRaces').value = s.total_races || ''; document.getElementById('stKm').value = s.total_km || ''; document.getElementById('stDplus').value = s.total_dplus || ''; document.getElementById('stYears').value = s.years_running || ''; }
+    if (s) { document.getElementById('stRaces').value = s.total_races || ''; document.getElementById('stDnf').value = s.total_dnf || ''; document.getElementById('stTotal').value = (s.total_races||0)+(s.total_dnf||0); document.getElementById('stYears').value = s.years_running || ''; updateTotal(); }
   }
   document.getElementById('btnSaveStats').addEventListener('click', async () => {
-    const payload = { total_races: +document.getElementById('stRaces').value||0, total_km: +document.getElementById('stKm').value||0, total_dplus: +document.getElementById('stDplus').value||0, years_running: +document.getElementById('stYears').value||0 };
+    const payload = { total_races: +document.getElementById('stRaces').value||0, total_dnf: +document.getElementById('stDnf').value||0, years_running: +document.getElementById('stYears').value||0 };
     const { data: ex } = await sb.from('stats').select('id').single();
     let error;
     if (ex?.id) ({ error } = await sb.from('stats').update(payload).eq('id', ex.id));
@@ -531,6 +531,9 @@
     toast('Supprimé ✅'); loadMatTable();
   }
 
+  function updateTotal() { const r = +document.getElementById('stRaces').value||0; const d = +document.getElementById('stDnf').value||0; document.getElementById('stTotal').value = r+d; }
+  document.getElementById('stRaces').addEventListener('input', updateTotal);
+  document.getElementById('stDnf').addEventListener('input', updateTotal);
   document.getElementById('btnLogout').addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
 
   checkAuth();
