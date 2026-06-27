@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Admin — Trail Runner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue-50: #e8f4fd; --blue-100: #b8dcf8; --blue-200: #85c2f5;
+      --blue-400: #3ba3e8; --blue-500: #1a8fd1; --blue-600: #1270a8; --blue-800: #0b4a72;
+      --green-50: #e8f7ee; --green-100: #b8e8cb; --green-400: #3bc47a;
+      --green-500: #22a85e; --green-600: #178548; --green-800: #0d5230;
+      --gray-50: #f8fafb; --gray-100: #eef2f5; --gray-200: #dce4ea;
+      --gray-400: #8fa3b0; --gray-600: #4d6373; --gray-700: #3a4d58;
+      --gray-800: #1e2d37; --gray-900: #0f1a21;
+      --white: #ffffff;
+      --red-50: #fee2e2; --red-500: #ef4444; --red-600: #b91c1c;
+      --sidebar-w: 260px;
+      --radius-sm: 8px; --radius-md: 14px; --radius-lg: 20px;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--gray-50); color: var(--gray-800); display: flex; min-height: 100vh; }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      width: var(--sidebar-w); background: var(--gray-900);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 1.5rem 1.25rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .sidebar-logo .logo-text {
+      font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.1rem;
+      background: linear-gradient(135deg, var(--blue-400), var(--green-400));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .sidebar-logo .logo-sub { font-size: 0.7rem; color: rgba(255,255,255,0.3); margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.1em; }
+    .sidebar-nav { flex: 1; padding: 1rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .nav-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.7rem 0.875rem; border-radius: var(--radius-sm);
+      color: rgba(255,255,255,0.5); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+    .nav-item.active { background: linear-gradient(135deg, rgba(59,163,232,0.2), rgba(59,196,122,0.15)); color: white; }
+    .nav-item .nav-icon { font-size: 1.1rem; width: 20px; }
+    .sidebar-section { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,0.2); padding: 1rem 0.875rem 0.4rem; }
+    .sidebar-bottom { padding: 1rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); }
+    .user-card {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem; border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.05);
+    }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue-500), var(--green-500));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.875rem; font-weight: 700; color: white;
+    }
+    .user-info .name { font-size: 0.875rem; font-weight: 600; color: white; }
+    .user-info .role { font-size: 0.7rem; color: rgba(255,255,255,0.35); }
+    .btn-logout {
+      margin-left: auto; background: none; border: none;
+      color: rgba(255,255,255,0.3); cursor: pointer; font-size: 1rem;
+      transition: color 0.2s; padding: 4px;
+    }
+    .btn-logout:hover { color: #ef4444; }
+
+    /* ─── MAIN ─── */
+    .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
+    .topbar {
+      background: white; border-bottom: 1px solid var(--gray-200);
+      padding: 0 2rem; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 40;
+    }
+    .topbar-title { font-family: 'Montserrat', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--gray-900); }
+    .topbar-actions { display: flex; gap: 0.75rem; align-items: center; }
+    .btn {
+      padding: 0.5rem 1rem; border-radius: 50px;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; border: none;
+    }
+    .btn-grad { background: linear-gradient(135deg, var(--blue-500), var(--green-500)); color: white; }
+    .btn-grad:hover { opacity: 0.9; }
+    .btn-outline { background: white; border: 1.5px solid var(--gray-200); color: var(--gray-600); }
+    .btn-outline:hover { border-color: var(--blue-400); color: var(--blue-500); }
+    .btn-danger { background: var(--red-50); border: 1px solid #fca5a5; color: var(--red-600); }
+    .btn-danger:hover { background: #fecaca; }
+    .content { padding: 2rem; flex: 1; }
+
+    /* ─── PANELS ─── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ─── STAT CARDS ─── */
+    .stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card {
+      background: white; border-radius: var(--radius-md);
+      border: 1px solid var(--gray-200); padding: 1.25rem;
+    }
+    .stat-card .sc-label { font-size: 0.75rem; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat-card .sc-value { font-family: 'Montserrat', sans-serif; font-size: 2rem; font-weight: 800; color: var(--gray-900); margin: 0.25rem 0; }
+    .stat-card .sc-icon { font-size: 1.5rem; }
+
+    /* ─── CARD ─── */
+    .card { background: white; border-radius: var(--radius-md); border: 1px solid var(--gray-200); margin-bottom: 1.5rem; overflow: hidden; }
+    .card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-weight: 700; color: var(--gray-800); font-size: 1rem; }
+    .card-body { padding: 1.5rem; }
+
+    /* ─── TABLE ─── */
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.6rem 0.75rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-400); border-bottom: 1px solid var(--gray-100); }
+    td { padding: 0.875rem 0.75rem; border-bottom: 1px solid var(--gray-50); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--gray-50); }
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 50px; font-size: 0.7rem; font-weight: 600; }
+    .badge-blue { background: var(--blue-50); color: var(--blue-600); }
+    .badge-green { background: var(--green-50); color: var(--green-600); }
+    .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+    .table-actions { display: flex; gap: 0.4rem; }
+    .action-btn {
+      padding: 0.3rem 0.7rem; border-radius: var(--radius-sm);
+      font-size: 0.75rem; font-weight: 600; cursor: pointer; border: none;
+      transition: background 0.15s;
+    }
+    .action-edit { background: var(--blue-50); color: var(--blue-600); }
+    .action-edit:hover { background: var(--blue-100); }
+    .action-del { background: var(--red-50); color: var(--red-600); }
+    .action-del:hover { background: #fecaca; }
+
+    /* ─── FORM ─── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group.full { grid-column: 1/-1; }
+    .form-label { font-size: 0.8rem; font-weight: 600; color: var(--gray-600); }
+    .form-input, .form-select, .form-textarea {
+      padding: 0.625rem 0.875rem; border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm); font-size: 0.875rem; font-family: 'Inter', sans-serif;
+      color: var(--gray-800); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      background: white;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--blue-400); box-shadow: 0 0 0 3px rgba(59,163,232,0.12);
+    }
+    .form-textarea { resize: vertical; min-height: 100px; }
+    .form-row { display: flex; gap: 1rem; align-items: center; }
+    .divider { height: 1px; background: var(--gray-100); margin: 1.5rem 0; }
+
+    /* ─── MODAL ─── */
+    .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(15,26,33,0.5); backdrop-filter: blur(4px); align-items: flex-start; justify-content: center; padding-top: 4rem; overflow-y: auto; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: var(--radius-lg); padding: 2rem; width: 100%; max-width: 580px; margin: 0 1rem 2rem; box-shadow: 0 20px 80px rgba(0,0,0,0.15); animation: slideUp 0.25s ease; }
+    @keyframes slideUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
+    .modal-title { font-family: 'Montserrat', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--gray-900); margin-bottom: 1.5rem; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+
+    /* ─── TOAST ─── */
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 300; background: var(--gray-900); color: white; padding: 0.875rem 1.25rem; border-radius: var(--radius-md); font-size: 0.875rem; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; max-width: 320px; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 4px solid var(--green-400); }
+    .toast.error { border-left: 4px solid #ef4444; }
+
+    /* ─── AUTH GUARD ─── */
+    .auth-guard { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--gray-50); text-align: center; padding: 2rem; }
+    .auth-guard-card { background: white; border-radius: var(--radius-xl); padding: 3rem; max-width: 400px; border: 1px solid var(--gray-200); }
+    .auth-guard-card h2 { font-family: 'Montserrat', sans-serif; font-weight: 800; margin-bottom: 0.75rem; }
+    .auth-guard-card p { color: var(--gray-400); margin-bottom: 1.5rem; }
+    .btn-home { display: inline-block; background: linear-gradient(135deg, var(--blue-500), var(--green-500)); color: white; padding: 0.75rem 2rem; border-radius: 50px; text-decoration: none; font-weight: 700; }
+
+    /* ─── PROFILE FORM ─── */
+    .profile-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue-500), var(--green-500));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; margin-bottom: 1.5rem;
+    }
+    .save-bar { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--gray-100); }
+  </style>
+</head>
+<body>
+
+<!-- Auth guard shown while checking -->
+<div id="authCheck" style="position:fixed;inset:0;background:white;display:flex;align-items:center;justify-content:center;z-index:999;font-size:2rem;">🔄</div>
+
+<!-- Main layout (hidden until auth OK) -->
+<div id="app" style="display:none; width:100%; display:none;">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">TRAIL ADMIN</div>
+      <div class="logo-sub">Dashboard</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Tableau de bord</div>
+      <button class="nav-item active" data-panel="overview">
+        <span class="nav-icon">📊</span> Vue d'ensemble
+      </button>
+
+      <div class="sidebar-section">Courses</div>
+      <button class="nav-item" data-panel="upcoming">
+        <span class="nav-icon">🗓️</span> Prochaines courses
+      </button>
+      <button class="nav-item" data-panel="past">
+        <span class="nav-icon">🏆</span> Courses terminées
+      </button>
+
+      <div class="sidebar-section">Profil</div>
+      <button class="nav-item" data-panel="profile">
+        <span class="nav-icon">👤</span> Mon profil
+      </button>
+      <button class="nav-item" data-panel="stats">
+        <span class="nav-icon">📈</span> Statistiques
+      </button>
+
+      <div style="flex:1"></div>
+      <a href="index.html" style="text-decoration:none;">
+        <button class="nav-item" style="margin-top:auto">
+          <span class="nav-icon">🌐</span> Voir le site
+        </button>
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <div class="name" id="sidebarName">Admin</div>
+          <div class="role">Administrateur</div>
+        </div>
+        <button class="btn-logout" id="btnLogout" title="Déconnexion">⎋</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">Vue d'ensemble</div>
+      <div class="topbar-actions">
+        <button class="btn btn-grad" id="topbarAddBtn" style="display:none">+ Ajouter</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ─── OVERVIEW ─── -->
+      <div class="panel active" id="panel-overview">
+        <div class="stat-cards" id="overviewStats"></div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Prochaines courses</div></div>
+          <div class="card-body" id="overviewUpcoming"><p style="color:var(--gray-400)">Chargement…</p></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Dernières performances</div></div>
+          <div class="card-body" id="overviewPast"><p style="color:var(--gray-400)">Chargement…</p></div>
+        </div>
+      </div>
+
+      <!-- ─── UPCOMING RACES ─── -->
+      <div class="panel" id="panel-upcoming">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Prochaines courses</div>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead><tr>
+                <th>Course</th><th>Date</th><th>Lieu</th><th>Distance</th><th>D+</th><th>Statut</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="upcomingTable"><tr><td colspan="7" style="color:var(--gray-400);text-align:center;padding:2rem">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── PAST RACES ─── -->
+      <div class="panel" id="panel-past">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Courses terminées</div>
+          </div>
+          <div class="card-body">
+            <table>
+              <thead><tr>
+                <th>Course</th><th>Date</th><th>Distance</th><th>Temps</th><th>Classement</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="pastTable"><tr><td colspan="6" style="color:var(--gray-400);text-align:center;padding:2rem">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── PROFILE ─── -->
+      <div class="panel" id="panel-profile">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Mon profil public</div></div>
+          <div class="card-body">
+            <div class="profile-avatar">🏃</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Nom complet</label>
+                <input class="form-input" id="pfName" placeholder="Jean Dupont" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Années de trail</label>
+                <input class="form-input" type="number" id="pfYears" placeholder="5" />
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Bio (apparaît sur le site)</label>
+                <textarea class="form-textarea" id="pfBio" rows="4" placeholder="Passionné de trail depuis…"></textarea>
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Tags (séparés par des virgules)</label>
+                <input class="form-input" id="pfTags" placeholder="Ultra-trail, Montagne, Skyrunning, Alpes" />
+              </div>
+            </div>
+            <div class="save-bar">
+              <button class="btn btn-grad" id="btnSaveProfile">💾 Enregistrer le profil</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── STATS ─── -->
+      <div class="panel" id="panel-stats">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Mes statistiques (affichées sur la page d'accueil)</div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Nombre de courses terminées</label>
+                <input class="form-input" type="number" id="stRaces" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Kilomètres totaux</label>
+                <input class="form-input" type="number" id="stKm" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Dénivelé positif total (m)</label>
+                <input class="form-input" type="number" id="stDplus" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Années de pratique</label>
+                <input class="form-input" type="number" id="stYears" placeholder="0" />
+              </div>
+            </div>
+            <div class="save-bar">
+              <button class="btn btn-grad" id="btnSaveStats">💾 Enregistrer les stats</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ─── MODAL COURSE ─── -->
+<div class="modal-overlay" id="raceModal">
+  <div class="modal">
+    <div class="modal-title" id="raceModalTitle">Ajouter une course</div>
+    <input type="hidden" id="raceId" />
+    <input type="hidden" id="raceKind" />
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Nom de la course *</label>
+        <input class="form-input" id="raceName" placeholder="UTMB, Maxi Race, Trans Alpine…" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date *</label>
+        <input class="form-input" type="date" id="raceDate" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lieu</label>
+        <input class="form-input" id="raceLocation" placeholder="Chamonix, France" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Distance (km)</label>
+        <input class="form-input" type="number" id="raceDistance" placeholder="168" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dénivelé positif (m)</label>
+        <input class="form-input" type="number" id="raceDplus" placeholder="10000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type de course</label>
+        <select class="form-select" id="raceType">
+          <option value="trail">Trail</option>
+          <option value="ultra">Ultra</option>
+          <option value="sky">Skyrace</option>
+          <option value="route">Route</option>
+        </select>
+      </div>
+      <!-- Champs selon upcoming/past -->
+      <div class="form-group upcoming-field">
+        <label class="form-label">Statut d'inscription</label>
+        <select class="form-select" id="raceStatus">
+          <option value="objectif">🎯 Objectif</option>
+          <option value="inscrit">✅ Inscrit</option>
+          <option value="selection">⚡ En sélection</option>
+        </select>
+      </div>
+      <div class="form-group past-field" style="display:none">
+        <label class="form-label">Temps de passage</label>
+        <input class="form-input" id="raceTime" placeholder="12h34'56''" />
+      </div>
+      <div class="form-group past-field" style="display:none">
+        <label class="form-label">Classement</label>
+        <input class="form-input" id="raceRank" placeholder="12ème / 450" />
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Notes / commentaire</label>
+        <textarea class="form-textarea" id="raceNotes" placeholder="Objectif, ressenti, conditions…" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="raceModalClose">Annuler</button>
+      <button class="btn btn-grad" id="raceModalSave">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── CONFIG SUPABASE ───
+  const SUPABASE_URL = 'https://yhkbpshmhtqznduwhcrj.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inloa2Jwc2htaHRxem5kdXdoY3JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk5MjUsImV4cCI6MjA5ODEzNTkyNX0.lY_h5h1RZZsCbgYHA-Ju3K2YTpwXvtwBo-LgZpQhynU';
+
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUser = null;
+  let currentPanel = 'overview';
+
+  // ─── AUTH GUARD ───
+  async function checkAuth() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      window.location.href = 'index.html';
+      return;
+    }
+    currentUser = session.user;
+
+    const { data: profile } = await sb.from('profiles').select('role, full_name').eq('id', currentUser.id).single();
+    if (!profile || profile.role !== 'admin') {
+      document.getElementById('authCheck').innerHTML = `
+        <div class="auth-guard-card">
+          <div style="font-size:3rem;margin-bottom:1rem">🚫</div>
+          <h2>Accès refusé</h2>
+          <p>Seul l'administrateur peut accéder à cette page.</p>
+          <a href="index.html" class="btn-home">Retour au site</a>
+        </div>`;
+      return;
+    }
+
+    // Update UI
+    const name = profile.full_name || currentUser.email.split('@')[0];
+    document.getElementById('sidebarName').textContent = name;
+    document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
+
+    document.getElementById('authCheck').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    loadPanel('overview');
+  }
+
+  // ─── NAV ───
+  document.querySelectorAll('.nav-item[data-panel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadPanel(btn.dataset.panel);
+    });
+  });
+
+  function showPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + id)?.classList.add('active');
+    const titles = { overview:'Vue d\'ensemble', upcoming:'Prochaines courses', past:'Courses terminées', profile:'Mon profil', stats:'Statistiques' };
+    document.getElementById('topbarTitle').textContent = titles[id] || id;
+    const addBtn = document.getElementById('topbarAddBtn');
+    if (id === 'upcoming' || id === 'past') {
+      addBtn.style.display = '';
+      addBtn.textContent = '+ Ajouter une course';
+      addBtn.onclick = () => openRaceModal(id === 'upcoming' ? 'upcoming' : 'past');
+    } else { addBtn.style.display = 'none'; }
+    currentPanel = id;
+  }
+
+  async function loadPanel(id) {
+    showPanel(id);
+    if (id === 'overview') await loadOverview();
+    else if (id === 'upcoming') await loadRacesTable('upcoming');
+    else if (id === 'past') await loadRacesTable('past');
+    else if (id === 'profile') await loadProfile();
+    else if (id === 'stats') await loadStats();
+  }
+
+  // ─── OVERVIEW ───
+  async function loadOverview() {
+    const { data: upcoming } = await sb.from('races').select('*').eq('type','upcoming').order('date',{ascending:true}).limit(3);
+    const { data: past } = await sb.from('races').select('*').eq('type','past').order('date',{ascending:false}).limit(3);
+    const { data: stats } = await sb.from('stats').select('*').single();
+
+    const sc = document.getElementById('overviewStats');
+    sc.innerHTML = `
+      <div class="stat-card"><div class="sc-icon">🏅</div><div class="sc-value">${stats?.total_races||0}</div><div class="sc-label">Courses finies</div></div>
+      <div class="stat-card"><div class="sc-icon">📏</div><div class="sc-value">${stats?.total_km||0} km</div><div class="sc-label">Distance totale</div></div>
+      <div class="stat-card"><div class="sc-icon">⛰️</div><div class="sc-value">${stats?.total_dplus||0} m</div><div class="sc-label">Dénivelé total</div></div>
+      <div class="stat-card"><div class="sc-icon">🗓️</div><div class="sc-value">${upcoming?.length||0}</div><div class="sc-label">Courses à venir</div></div>`;
+
+    const oup = document.getElementById('overviewUpcoming');
+    if (!upcoming?.length) { oup.innerHTML = '<p style="color:var(--gray-400)">Aucune course à venir</p>'; }
+    else {
+      oup.innerHTML = `<table><thead><tr><th>Course</th><th>Date</th><th>Distance</th><th>Statut</th></tr></thead><tbody>` +
+        upcoming.map(r => `<tr>
+          <td><strong>${r.name}</strong></td>
+          <td>${formatDate(r.date)}</td>
+          <td>${r.distance ? r.distance + ' km' : '—'}</td>
+          <td><span class="badge badge-blue">${r.status||'objectif'}</span></td>
+        </tr>`).join('') + `</tbody></table>`;
+    }
+
+    const op = document.getElementById('overviewPast');
+    if (!past?.length) { op.innerHTML = '<p style="color:var(--gray-400)">Aucune course enregistrée</p>'; }
+    else {
+      op.innerHTML = `<table><thead><tr><th>Course</th><th>Date</th><th>Temps</th><th>Classement</th></tr></thead><tbody>` +
+        past.map(r => `<tr>
+          <td><strong>${r.name}</strong></td>
+          <td>${formatDate(r.date)}</td>
+          <td>${r.finish_time||'—'}</td>
+          <td>${r.rank||'—'}</td>
+        </tr>`).join('') + `</tbody></table>`;
+    }
+  }
+
+  // ─── RACES TABLE ───
+  async function loadRacesTable(type) {
+    const tbodyId = type === 'upcoming' ? 'upcomingTable' : 'pastTable';
+    const tbody = document.getElementById(tbodyId);
+    const { data: races, error } = await sb.from('races').select('*').eq('type', type).order('date', {ascending: type==='upcoming'});
+    if (!races?.length) { tbody.innerHTML = `<tr><td colspan="7" style="color:var(--gray-400);text-align:center;padding:2rem">Aucune course — ajoutez-en une !</td></tr>`; return; }
+    tbody.innerHTML = races.map(r => {
+      if (type === 'upcoming') return `<tr>
+        <td><strong>${r.name}</strong></td>
+        <td>${formatDate(r.date)}</td>
+        <td>${r.location||'—'}</td>
+        <td>${r.distance ? r.distance + ' km' : '—'}</td>
+        <td>${r.dplus ? r.dplus + ' m' : '—'}</td>
+        <td><span class="badge badge-blue">${r.status||'objectif'}</span></td>
+        <td><div class="table-actions">
+          <button class="action-btn action-edit" onclick="openRaceModal('upcoming','${r.id}')">✏️ Modifier</button>
+          <button class="action-btn action-del" onclick="deleteRace('${r.id}')">🗑️</button>
+        </div></td>
+      </tr>`;
+      else return `<tr>
+        <td><strong>${r.name}</strong></td>
+        <td>${formatDate(r.date)}</td>
+        <td>${r.distance ? r.distance + ' km' : '—'}</td>
+        <td>${r.finish_time||'—'}</td>
+        <td>${r.rank||'—'}</td>
+        <td><div class="table-actions">
+          <button class="action-btn action-edit" onclick="openRaceModal('past','${r.id}')">✏️ Modifier</button>
+          <button class="action-btn action-del" onclick="deleteRace('${r.id}')">🗑️</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ─── MODAL COURSE ───
+  async function openRaceModal(kind, raceId = null) {
+    document.getElementById('raceKind').value = kind;
+    document.getElementById('raceId').value = raceId || '';
+    document.getElementById('raceModalTitle').textContent = raceId ? 'Modifier la course' : 'Ajouter une course';
+
+    // Show/hide fields
+    document.querySelectorAll('.upcoming-field').forEach(el => el.style.display = kind==='upcoming' ? '' : 'none');
+    document.querySelectorAll('.past-field').forEach(el => el.style.display = kind==='past' ? '' : 'none');
+
+    if (raceId) {
+      const { data: r } = await sb.from('races').select('*').eq('id', raceId).single();
+      if (r) {
+        document.getElementById('raceName').value = r.name || '';
+        document.getElementById('raceDate').value = r.date || '';
+        document.getElementById('raceLocation').value = r.location || '';
+        document.getElementById('raceDistance').value = r.distance || '';
+        document.getElementById('raceDplus').value = r.dplus || '';
+        document.getElementById('raceType').value = r.race_type || 'trail';
+        document.getElementById('raceStatus').value = r.status || 'objectif';
+        document.getElementById('raceTime').value = r.finish_time || '';
+        document.getElementById('raceRank').value = r.rank || '';
+        document.getElementById('raceNotes').value = r.notes || '';
+      }
+    } else {
+      ['raceName','raceDate','raceLocation','raceDistance','raceDplus','raceTime','raceRank','raceNotes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('raceType').value = 'trail';
+      document.getElementById('raceStatus').value = 'objectif';
+    }
+
+    document.getElementById('raceModal').classList.add('open');
+  }
+
+  document.getElementById('raceModalClose').addEventListener('click', () => { document.getElementById('raceModal').classList.remove('open'); });
+  document.getElementById('raceModal').addEventListener('click', e => { if (e.target === document.getElementById('raceModal')) document.getElementById('raceModal').classList.remove('open'); });
+
+  document.getElementById('raceModalSave').addEventListener('click', async () => {
+    const kind = document.getElementById('raceKind').value;
+    const raceId = document.getElementById('raceId').value;
+    const payload = {
+      name: document.getElementById('raceName').value,
+      date: document.getElementById('raceDate').value,
+      location: document.getElementById('raceLocation').value,
+      distance: parseFloat(document.getElementById('raceDistance').value) || null,
+      dplus: parseInt(document.getElementById('raceDplus').value) || null,
+      race_type: document.getElementById('raceType').value,
+      type: kind,
+      status: kind==='upcoming' ? document.getElementById('raceStatus').value : null,
+      finish_time: kind==='past' ? document.getElementById('raceTime').value : null,
+      rank: kind==='past' ? document.getElementById('raceRank').value : null,
+      notes: document.getElementById('raceNotes').value,
+    };
+    if (!payload.name || !payload.date) return toast('Nom et date obligatoires', 'error');
+    let error;
+    if (raceId) ({ error } = await sb.from('races').update(payload).eq('id', raceId));
+    else ({ error } = await sb.from('races').insert(payload));
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Course enregistrée ✅', 'success');
+    document.getElementById('raceModal').classList.remove('open');
+    loadRacesTable(kind);
+  });
+
+  async function deleteRace(id) {
+    if (!confirm('Supprimer cette course ?')) return;
+    const { error } = await sb.from('races').delete().eq('id', id);
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Course supprimée', 'success');
+    loadRacesTable(currentPanel);
+  }
+
+  // ─── PROFILE ───
+  async function loadProfile() {
+    const { data: p } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+    if (p) {
+      document.getElementById('pfName').value = p.full_name || '';
+      document.getElementById('pfYears').value = p.years_running || '';
+      document.getElementById('pfBio').value = p.bio || '';
+      document.getElementById('pfTags').value = p.tags || '';
+    }
+  }
+  document.getElementById('btnSaveProfile').addEventListener('click', async () => {
+    const payload = {
+      id: currentUser.id,
+      full_name: document.getElementById('pfName').value,
+      years_running: parseInt(document.getElementById('pfYears').value) || null,
+      bio: document.getElementById('pfBio').value,
+      tags: document.getElementById('pfTags').value,
+      role: 'admin',
+    };
+    const { error } = await sb.from('profiles').upsert(payload);
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Profil enregistré ✅', 'success');
+    document.getElementById('sidebarName').textContent = payload.full_name;
+    document.getElementById('sidebarAvatar').textContent = payload.full_name.charAt(0).toUpperCase();
+  });
+
+  // ─── STATS ───
+  async function loadStats() {
+    const { data: s } = await sb.from('stats').select('*').single();
+    if (s) {
+      document.getElementById('stRaces').value = s.total_races || '';
+      document.getElementById('stKm').value = s.total_km || '';
+      document.getElementById('stDplus').value = s.total_dplus || '';
+      document.getElementById('stYears').value = s.years_running || '';
+    }
+  }
+  document.getElementById('btnSaveStats').addEventListener('click', async () => {
+    const payload = {
+      total_races: parseInt(document.getElementById('stRaces').value) || 0,
+      total_km: parseInt(document.getElementById('stKm').value) || 0,
+      total_dplus: parseInt(document.getElementById('stDplus').value) || 0,
+      years_running: parseInt(document.getElementById('stYears').value) || 0,
+    };
+    const { data: existing } = await sb.from('stats').select('id').single();
+    let error;
+    if (existing?.id) ({ error } = await sb.from('stats').update(payload).eq('id', existing.id));
+    else ({ error } = await sb.from('stats').insert(payload));
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Statistiques enregistrées ✅', 'success');
+  });
+
+  // ─── LOGOUT ───
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    window.location.href = 'index.html';
+  });
+
+  // ─── UTILS ───
+  function formatDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
+  }
+  function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.className = 'toast ' + type; el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  checkAuth();
+</script>
+</body>
+</html>
