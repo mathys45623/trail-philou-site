@@ -60,8 +60,8 @@
   <div class="page-content">
     <div class="big-grid" id="bigGrid">
       <div class="big-stat"><div class="icon">🏅</div><div class="val" id="stRaces">—</div><div class="lbl">Courses finies</div></div>
-      <div class="big-stat"><div class="icon">📏</div><div class="val" id="stKm">—</div><div class="lbl">Kilomètres totaux</div></div>
-      <div class="big-stat"><div class="icon">⛰️</div><div class="val" id="stDplus">—</div><div class="lbl">Dénivelé total (m)</div></div>
+      <div class="big-stat"><div class="icon">🚩</div><div class="val" id="stDnf">—</div><div class="lbl">Courses non finies</div></div>
+      <div class="big-stat"><div class="icon">🏁</div><div class="val" id="stTotal">—</div><div class="lbl">Courses au total</div></div>
       <div class="big-stat"><div class="icon">🗓️</div><div class="val" id="stYears">—</div><div class="lbl">Années de pratique</div></div>
     </div>
 
@@ -99,8 +99,8 @@
     const { data: stats } = await sb.from('stats').select('*').single();
     if (stats) {
       document.getElementById('stRaces').textContent = stats.total_races || 0;
-      document.getElementById('stKm').textContent = (stats.total_km || 0) + ' km';
-      document.getElementById('stDplus').textContent = (stats.total_dplus || 0).toLocaleString();
+      document.getElementById('stDnf').textContent = stats.total_dnf || 0;
+      document.getElementById('stTotal').textContent = (stats.total_races || 0) + (stats.total_dnf || 0);
       document.getElementById('stYears').textContent = (stats.years_running || 0) + ' ans';
     }
 
