@@ -282,17 +282,19 @@
     }
 
     // Photos
-    const imgs = r.images || [];
+    let imgs = r.images || [];
+    if (typeof imgs === 'string') { try { imgs = JSON.parse(imgs); } catch(e) { imgs = imgs.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); } }
     if (imgs.length) {
       document.getElementById('drawerPhotos').innerHTML = `
         <div class="drawer-section-title">🖼️ Photos (${imgs.length})</div>
-        <div class="photos-grid">${imgs.map(src => `<div class="photo-item" onclick="openLightbox('${src}')"><img src="${src}" alt="" /></div>`).join('')}</div>`;
+        <div class="photos-grid">${imgs.map(src => `<div class="photo-item" onclick="openLightbox('${src}')"><img src="${src}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'" /></div>`).join('')}</div>`;
     } else {
       document.getElementById('drawerPhotos').innerHTML = '';
     }
 
     // Vidéos
-    const vids = r.videos || [];
+    let vids = r.videos || [];
+    if (typeof vids === 'string') { try { vids = JSON.parse(vids); } catch(e) { vids = vids.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); } }
     if (vids.length) {
       document.getElementById('drawerVideos').innerHTML = `
         <div class="drawer-section-title">🎬 Vidéos (${vids.length})</div>
