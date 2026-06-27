@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prochaines courses — Trail Philou</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="logo">TRAIL PHILOU</div><div class="logo-sub">Mon univers trail</div></div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-link"><span class="ni">🏠</span> Accueil</a>
+    <div class="sidebar-section">Mon trail</div>
+    <a href="statistiques.html" class="nav-link"><span class="ni">📊</span> Statistiques</a>
+    <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
+    <a href="prochaines-courses.html" class="nav-link active"><span class="ni">🗓️</span> Prochaines courses</a>
+    <a href="materiel.html" class="nav-link"><span class="ni">🎒</span> Mon matériel</a>
+    <div style="flex:1"></div>
+  </nav>
+  <div class="sidebar-bottom" id="userBottom" style="display:none">
+    <div class="user-pill">
+      <div class="user-avatar" id="userAv">?</div>
+      <div class="user-name" id="userName">—</div>
+      <button class="btn-logout" id="btnLogout">⎋</button>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-title">🗓️ Prochaines courses</div>
+    <div class="page-sub">Mon agenda trail à venir</div>
+  </div>
+  <div class="page-content">
+    <div class="race-grid" id="raceGrid">
+      <div class="empty"><div class="empty-icon">⏳</div><p>Chargement…</p></div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="shared.js"></script>
+<script>
+  const statusMap = { inscrit: '✅ Inscrit', objectif: '🎯 Objectif', selection: '⚡ Sélection' };
+  const statusColors = { inscrit: 'badge-green', objectif: 'badge-blue', selection: 'badge-gray' };
+
+  async function loadPage() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      document.getElementById('userBottom').style.display = '';
+      const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
+    }
+
+    const { data: races } = await sb.from('races').select('*').eq('type', 'upcoming').order('date', { ascending: true });
+    const el = document.getElementById('raceGrid');
+    if (!races || !races.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucune course à venir pour le moment</p></div>';
+      return;
+    }
+    el.style.display = 'grid';
+    el.innerHTML = races.map(r => `
+      <div class="race-card">
+        <div class="race-card-img">
+          ${r.image_url
+            ? `<img src="${r.image_url}" alt="${r.name}" />`
+            : `<div class="no-img">🏔️</div>`}
+        </div>
+        <div class="race-card-body">
+          <div class="race-card-date">📅 ${fmtDate(r.date)}</div>
+          <div class="race-card-name">${r.name}</div>
+          <div class="race-card-loc">📍 ${r.location || '—'}</div>
+          <div class="race-card-specs">
+            ${r.distance ? `<span>📏 ${r.distance} km</span>` : ''}
+            ${r.dplus ? `<span>⛰️ ${r.dplus} m D+</span>` : ''}
+          </div>
+          <div style="margin-top:0.75rem">
+            <span class="badge ${statusColors[r.status] || 'badge-blue'}">${statusMap[r.status] || r.status || 'Objectif'}</span>
+          </div>
+          ${r.notes ? `<p style="margin-top:0.75rem;font-size:0.85rem;color:var(--gray-500);line-height:1.6">${r.notes}</p>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
+  loadPage();
+</script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trail Philou</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Hero spécifique accueil */
+    .hero-wrap {
+      min-height: calc(100vh - 0px);
+      display: flex; align-items: center;
+      padding: 3rem 2.5rem;
+      background: linear-gradient(135deg, rgba(232,244,253,0.6) 0%, rgba(232,247,238,0.6) 100%);
+      position: relative; overflow: hidden;
+    }
+    .hero-wrap::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(-30deg, transparent, transparent 60px, rgba(59,163,232,0.035) 60px, rgba(59,163,232,0.035) 61px);
+    }
+    .hero-inner { position: relative; z-index: 1; max-width: 700px; }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: white; border: 1px solid var(--gray-200);
+      border-radius: 50px; padding: 0.3rem 1rem;
+      font-size: 0.78rem; font-weight: 600; color: var(--gray-600);
+      margin-bottom: 1.5rem;
+    }
+    .hero-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 900; line-height: 1.08;
+      letter-spacing: -0.03em; color: var(--gray-900);
+      margin-bottom: 1.25rem;
+    }
+    .hero-bio {
+      font-size: 1.05rem; color: var(--gray-600);
+      line-height: 1.8; margin-bottom: 2rem; max-width: 560px;
+    }
+    .hero-photo {
+      margin-top: 2.5rem;
+      width: min(420px, 100%); aspect-ratio: 4/3;
+      border-radius: var(--r-xl); overflow: hidden;
+      border: 3px solid white; box-shadow: 0 12px 48px rgba(0,0,0,0.12);
+    }
+    .hero-photo img { width: 100%; height: 100%; object-fit: cover; }
+    .hero-photo .no-photo {
+      width: 100%; height: 100%;
+      background: var(--gray-100);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: var(--gray-300); font-size: 3rem; gap: 0.5rem;
+    }
+    .hero-photo .no-photo p { font-size: 0.85rem; color: var(--gray-400); }
+    .hero-nav-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem; margin-top: 3rem;
+    }
+    .hnav-card {
+      background: white; border-radius: var(--r-lg);
+      border: 1px solid var(--gray-200); padding: 1.25rem;
+      text-decoration: none; color: inherit;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .hnav-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.08); border-color: var(--blue-mid); }
+    .hnav-card .hc-icon { font-size: 1.75rem; }
+    .hnav-card .hc-label { font-weight: 700; font-size: 0.95rem; color: var(--gray-900); }
+    .hnav-card .hc-sub { font-size: 0.78rem; color: var(--gray-400); }
+
+    /* Login/logout nav pill */
+    .auth-pill {
+      margin-top: auto;
+      display: flex; gap: 0.5rem; flex-direction: column;
+    }
+    .btn-login-nav {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.65rem 0.875rem; border-radius: var(--r-sm);
+      background: linear-gradient(135deg, rgba(59,163,232,0.15), rgba(59,196,122,0.1));
+      color: white; font-size: 0.875rem; font-weight: 600;
+      border: none; cursor: pointer; width: 100%; text-align: left;
+      transition: opacity 0.2s;
+    }
+    .btn-login-nav:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+
+<!-- ─── SIDEBAR ─── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo">TRAIL PHILOU</div>
+    <div class="logo-sub">Mon univers trail</div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-link active"><span class="ni">🏠</span> Accueil</a>
+
+    <div class="sidebar-section">Mon trail</div>
+    <a href="statistiques.html" class="nav-link"><span class="ni">📊</span> Statistiques</a>
+    <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
+    <a href="prochaines-courses.html" class="nav-link"><span class="ni">🗓️</span> Prochaines courses</a>
+    <a href="materiel.html" class="nav-link"><span class="ni">🎒</span> Mon matériel</a>
+
+    <div style="flex:1"></div>
+    <div class="auth-pill">
+      <button class="btn-login-nav" id="btnAuthNav">🔑 Connexion</button>
+    </div>
+  </nav>
+  <div class="sidebar-bottom" id="userBottom" style="display:none">
+    <div class="user-pill">
+      <div class="user-avatar" id="userAv">?</div>
+      <div class="user-name" id="userName">—</div>
+      <button class="btn-logout" id="btnLogout" title="Déconnexion">⎋</button>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── MAIN ─── -->
+<main class="main">
+  <div class="hero-wrap">
+    <div class="hero-inner">
+      <div class="hero-tag">🏔️ Passionné de trail &amp; montagne</div>
+      <h1 class="hero-title" id="heroTitle">Courir plus loin,<br><span class="grad-text">toujours plus haut</span></h1>
+      <p class="hero-bio" id="heroBio">Chargement…</p>
+
+      <div class="hero-photo" id="heroPhotoWrap">
+        <div class="no-photo"><span>📷</span><p>Photo à venir</p></div>
+      </div>
+
+      <div class="hero-nav-cards">
+        <a href="statistiques.html" class="hnav-card">
+          <div class="hc-icon">📊</div>
+          <div class="hc-label">Statistiques</div>
+          <div class="hc-sub">Mes chiffres clés</div>
+        </a>
+        <a href="courses-terminees.html" class="hnav-card">
+          <div class="hc-icon">🏆</div>
+          <div class="hc-label">Courses terminées</div>
+          <div class="hc-sub">Mon palmarès complet</div>
+        </a>
+        <a href="prochaines-courses.html" class="hnav-card">
+          <div class="hc-icon">🗓️</div>
+          <div class="hc-label">Prochaines courses</div>
+          <div class="hc-sub">Mon agenda trail</div>
+        </a>
+        <a href="materiel.html" class="hnav-card">
+          <div class="hc-icon">🎒</div>
+          <div class="hc-label">Mon matériel</div>
+          <div class="hc-sub">Équipement &amp; nutrition</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ─── MODAL AUTH ─── -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-modal">
+    <button class="auth-close" id="authClose">✕</button>
+    <div class="auth-title">Bienvenue !</div>
+    <div class="auth-sub">Connectez-vous pour accéder à tout le contenu</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Connexion</button>
+      <button class="auth-tab" data-tab="signup">Inscription</button>
+    </div>
+    <div id="tabLogin">
+      <input class="auth-input" type="email" id="loginEmail" placeholder="Email" />
+      <input class="auth-input" type="password" id="loginPassword" placeholder="Mot de passe" />
+      <button class="auth-submit" id="btnLogin">Se connecter</button>
+      <div class="auth-msg" id="loginMsg"></div>
+    </div>
+    <div id="tabSignup" style="display:none">
+      <input class="auth-input" type="text" id="signupName" placeholder="Prénom" />
+      <input class="auth-input" type="email" id="signupEmail" placeholder="Email" />
+      <input class="auth-input" type="password" id="signupPassword" placeholder="Mot de passe (6 car. min)" />
+      <button class="auth-submit" id="btnSignup">Créer mon compte</button>
+      <div class="auth-msg" id="signupMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="shared.js"></script>
+<script>
+  // Auth modal
+  const authOverlay = document.getElementById('authOverlay');
+  document.getElementById('btnAuthNav').addEventListener('click', () => authOverlay.classList.add('open'));
+  document.getElementById('authClose').addEventListener('click', () => authOverlay.classList.remove('open'));
+  authOverlay.addEventListener('click', e => { if (e.target === authOverlay) authOverlay.classList.remove('open'); });
+
+  // Tabs
+  document.querySelectorAll('.auth-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tabLogin').style.display = btn.dataset.tab === 'login' ? '' : 'none';
+      document.getElementById('tabSignup').style.display = btn.dataset.tab === 'signup' ? '' : 'none';
+    });
+  });
+
+  function showMsg(id, txt, type) {
+    const el = document.getElementById(id);
+    el.textContent = txt; el.className = 'auth-msg ' + type; el.style.display = '';
+    setTimeout(() => el.style.display = 'none', 5000);
+  }
+
+  // Login
+  document.getElementById('btnLogin').addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPassword').value;
+    if (!email || !pass) return showMsg('loginMsg', 'Remplissez tous les champs.', 'error');
+    const btn = document.getElementById('btnLogin');
+    btn.disabled = true; btn.textContent = 'Connexion…';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    btn.disabled = false; btn.textContent = 'Se connecter';
+    if (error) return showMsg('loginMsg', 'Email ou mot de passe incorrect.', 'error');
+    authOverlay.classList.remove('open');
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
+    if (profile?.role === 'admin') { window.location.href = 'dashboard.html'; return; }
+    updateAuthUI(data.user);
+  });
+
+  // Signup
+  document.getElementById('btnSignup').addEventListener('click', async () => {
+    const name = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const pass = document.getElementById('signupPassword').value;
+    if (!name || !email || !pass) return showMsg('signupMsg', 'Remplissez tous les champs.', 'error');
+    const btn = document.getElementById('btnSignup');
+    btn.disabled = true; btn.textContent = 'Création…';
+    const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+    btn.disabled = false; btn.textContent = 'Créer mon compte';
+    if (error) return showMsg('signupMsg', error.message, 'error');
+    const { data: loginData } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (loginData?.user) { authOverlay.classList.remove('open'); updateAuthUI(loginData.user); }
+    else showMsg('signupMsg', 'Compte créé ! Connectez-vous.', 'success');
+  });
+
+  // Logout
+  document.getElementById('btnLogout')?.addEventListener('click', async () => {
+    await sb.auth.signOut(); updateAuthUI(null);
+  });
+
+  function updateAuthUI(user) {
+    const btnNav = document.getElementById('btnAuthNav');
+    const userBottom = document.getElementById('userBottom');
+    if (user) {
+      btnNav.style.display = 'none';
+      userBottom.style.display = '';
+      const name = user.user_metadata?.full_name || user.email.split('@')[0];
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
+    } else {
+      btnNav.style.display = '';
+      userBottom.style.display = 'none';
+    }
+  }
+
+  async function loadPage() {
+    const { data: { session } } = await sb.auth.getSession();
+    updateAuthUI(session?.user || null);
+
+    const { data: p } = await sb.from('profiles').select('*').eq('role', 'admin').single();
+    if (p) {
+      if (p.hero_title) document.getElementById('heroTitle').innerHTML = p.hero_title;
+      if (p.bio) document.getElementById('heroBio').textContent = p.bio;
+      if (p.photo_url) {
+        document.getElementById('heroPhotoWrap').innerHTML = `<img src="${p.photo_url}" alt="Photo" />`;
+      }
+    }
+  }
+
+  loadPage();
+</script>
+</body>
+</html>

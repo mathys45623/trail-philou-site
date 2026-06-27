@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mon matériel — Trail Philou</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .cat-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .cat-btn {
+      padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.8rem; font-weight: 600;
+      border: 1.5px solid var(--gray-200); background: white; color: var(--gray-600);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .cat-btn.active { background: linear-gradient(135deg, var(--blue), var(--green)); color: white; border-color: transparent; }
+    .cat-btn:hover:not(.active) { border-color: var(--blue-mid); color: var(--blue); }
+  </style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="logo">TRAIL PHILOU</div><div class="logo-sub">Mon univers trail</div></div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-link"><span class="ni">🏠</span> Accueil</a>
+    <div class="sidebar-section">Mon trail</div>
+    <a href="statistiques.html" class="nav-link"><span class="ni">📊</span> Statistiques</a>
+    <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
+    <a href="prochaines-courses.html" class="nav-link"><span class="ni">🗓️</span> Prochaines courses</a>
+    <a href="materiel.html" class="nav-link active"><span class="ni">🎒</span> Mon matériel</a>
+    <div style="flex:1"></div>
+  </nav>
+  <div class="sidebar-bottom" id="userBottom" style="display:none">
+    <div class="user-pill">
+      <div class="user-avatar" id="userAv">?</div>
+      <div class="user-name" id="userName">—</div>
+      <button class="btn-logout" id="btnLogout">⎋</button>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-title">🎒 Mon matériel</div>
+    <div class="page-sub">Équipement, nutrition et vêtements</div>
+  </div>
+  <div class="page-content">
+    <div class="cat-filters" id="catFilters">
+      <button class="cat-btn active" data-cat="all">Tout voir</button>
+    </div>
+    <div class="mat-grid" id="matGrid">
+      <div class="empty"><div class="empty-icon">⏳</div><p>Chargement…</p></div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="shared.js"></script>
+<script>
+  let allItems = [];
+
+  const catEmojis = { 'Chaussures': '👟', 'Vêtements': '👕', 'Sac & Hydratation': '🎒', 'Nutrition': '🍌', 'Électronique': '⌚', 'Accessoires': '🧤', 'Autre': '📦' };
+
+  async function loadPage() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      document.getElementById('userBottom').style.display = '';
+      const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
+    }
+
+    const { data: items } = await sb.from('materiel').select('*').order('categorie');
+    allItems = items || [];
+    buildFilters();
+    renderItems('all');
+  }
+
+  function buildFilters() {
+    const cats = [...new Set(allItems.map(i => i.categorie).filter(Boolean))];
+    const container = document.getElementById('catFilters');
+    cats.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'cat-btn';
+      btn.dataset.cat = cat;
+      btn.textContent = (catEmojis[cat] || '📦') + ' ' + cat;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderItems(cat);
+      });
+      container.appendChild(btn);
+    });
+    container.querySelector('[data-cat="all"]').addEventListener('click', () => {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      container.querySelector('[data-cat="all"]').classList.add('active');
+      renderItems('all');
+    });
+  }
+
+  function renderItems(cat) {
+    const filtered = cat === 'all' ? allItems : allItems.filter(i => i.categorie === cat);
+    const el = document.getElementById('matGrid');
+    if (!filtered.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🎒</div><p>Aucun équipement dans cette catégorie</p></div>';
+      return;
+    }
+    el.innerHTML = filtered.map(item => `
+      <div class="mat-card">
+        <div class="mat-card-img">
+          ${item.image_url
+            ? `<img src="${item.image_url}" alt="${item.nom}" />`
+            : `<div class="no-img">${catEmojis[item.categorie] || '📦'}</div>`}
+        </div>
+        <div class="mat-card-body">
+          <div class="mat-card-cat">${item.categorie || 'Matériel'}</div>
+          <div class="mat-card-name">${item.nom}</div>
+          ${item.marque ? `<div style="font-size:0.8rem;color:var(--blue);font-weight:600;margin-bottom:0.35rem">${item.marque}</div>` : ''}
+          ${item.description ? `<div class="mat-card-desc">${item.description}</div>` : ''}
+          ${item.avis ? `<div style="margin-top:0.75rem;font-size:0.82rem;color:var(--gray-500);border-top:1px solid var(--gray-100);padding-top:0.6rem">⭐ ${item.avis}</div>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
+  loadPage();
+</script>
+</body>
+</html>

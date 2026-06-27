@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Admin — Trail Philou</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { display: flex; }
+    .dash-sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w); background: var(--gray-900);
+      display: flex; flex-direction: column; z-index: 50; overflow-y: auto;
+    }
+    .dash-main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
+    .dash-topbar {
+      background: white; border-bottom: 1px solid var(--gray-200);
+      padding: 0 2rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 40;
+    }
+    .topbar-title { font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 800; color: var(--gray-900); }
+    .dash-content { padding: 2rem 2.5rem; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .save-bar { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--gray-100); }
+    .preview-photo { width: 100px; height: 100px; border-radius: var(--r-md); object-fit: cover; border: 2px solid var(--gray-200); }
+    .file-input-wrap { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<div id="authCheck" style="position:fixed;inset:0;background:white;display:flex;align-items:center;justify-content:center;z-index:999;font-size:2rem;">🔄</div>
+
+<!-- ─── SIDEBAR ADMIN ─── -->
+<aside class="dash-sidebar">
+  <div class="sidebar-logo">
+    <div class="logo">ADMIN</div>
+    <div class="logo-sub">Trail Philou</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section">Pages</div>
+    <button class="nav-link active" data-panel="accueil"><span class="ni">🏠</span> Page d'accueil</button>
+    <button class="nav-link" data-panel="stats"><span class="ni">📊</span> Statistiques</button>
+    <button class="nav-link" data-panel="past"><span class="ni">🏆</span> Courses terminées</button>
+    <button class="nav-link" data-panel="upcoming"><span class="ni">🗓️</span> Prochaines courses</button>
+    <button class="nav-link" data-panel="materiel"><span class="ni">🎒</span> Mon matériel</button>
+    <div style="flex:1"></div>
+    <div class="sidebar-section">Accès rapide</div>
+    <a href="index.html" target="_blank" class="nav-link"><span class="ni">🌐</span> Voir le site</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-pill">
+      <div class="user-avatar" id="sidebarAv">A</div>
+      <div class="user-name" id="sidebarName">Admin</div>
+      <button class="btn-logout" id="btnLogout" title="Déconnexion">⎋</button>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── MAIN ─── -->
+<div class="dash-main">
+  <div class="dash-topbar">
+    <div class="topbar-title" id="topbarTitle">Page d'accueil</div>
+    <div id="topbarAction"></div>
+  </div>
+  <div class="dash-content">
+
+    <!-- ── ACCUEIL ── -->
+    <div class="panel active" id="panel-accueil">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Contenu de la page d'accueil</div></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">Titre principal (HTML accepté, ex: Courir plus loin,&lt;br&gt;toujours plus haut)</label>
+              <input class="form-input" id="pfHeroTitle" placeholder="Courir plus loin,&lt;br&gt;toujours plus haut" />
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Présentation / Bio</label>
+              <textarea class="form-textarea" id="pfBio" rows="5" placeholder="Parlez de vous, votre passion pour le trail…"></textarea>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Photo de profil</label>
+              <div class="file-input-wrap">
+                <img id="pfPhotoPreview" class="preview-photo" src="" alt="" style="display:none" />
+                <div>
+                  <input type="file" id="pfPhotoFile" accept="image/*" style="display:none" />
+                  <button class="btn btn-outline" onclick="document.getElementById('pfPhotoFile').click()">📷 Choisir une photo</button>
+                  <div class="form-hint" style="margin-top:0.3rem">JPG, PNG, WebP · Max 5 MB</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="save-bar">
+            <button class="btn btn-primary" id="btnSaveAccueil">💾 Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="panel" id="panel-stats">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Statistiques affichées sur le site</div></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">Courses terminées</label><input class="form-input" type="number" id="stRaces" /></div>
+            <div class="form-group"><label class="form-label">Kilomètres totaux</label><input class="form-input" type="number" id="stKm" /></div>
+            <div class="form-group"><label class="form-label">Dénivelé positif total (m)</label><input class="form-input" type="number" id="stDplus" /></div>
+            <div class="form-group"><label class="form-label">Années de pratique</label><input class="form-input" type="number" id="stYears" /></div>
+          </div>
+          <div class="save-bar"><button class="btn btn-primary" id="btnSaveStats">💾 Enregistrer</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COURSES TERMINÉES ── -->
+    <div class="panel" id="panel-past">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Courses terminées</div>
+          <button class="btn btn-primary btn-sm" id="btnAddPast">+ Ajouter une course</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table><thead><tr><th>Course</th><th>Date</th><th>Temps</th><th>Classement</th><th>Vidéos</th><th>Actions</th></tr></thead>
+            <tbody id="pastTable"><tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:2rem">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROCHAINES COURSES ── -->
+    <div class="panel" id="panel-upcoming">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Prochaines courses</div>
+          <button class="btn btn-primary btn-sm" id="btnAddUpcoming">+ Ajouter une course</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table><thead><tr><th>Course</th><th>Date</th><th>Lieu</th><th>Distance</th><th>Statut</th><th>Image</th><th>Actions</th></tr></thead>
+            <tbody id="upcomingTable"><tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:2rem">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MATÉRIEL ── -->
+    <div class="panel" id="panel-materiel">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Mon matériel</div>
+          <button class="btn btn-primary btn-sm" id="btnAddMat">+ Ajouter un équipement</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table><thead><tr><th>Nom</th><th>Catégorie</th><th>Marque</th><th>Image</th><th>Actions</th></tr></thead>
+            <tbody id="matTable"><tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:2rem">Chargement…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dash-content -->
+</div><!-- /dash-main -->
+
+<!-- ─── MODAL COURSE ─── -->
+<div class="modal-overlay" id="raceModal">
+  <div class="modal">
+    <div class="modal-title" id="raceModalTitle">Ajouter une course</div>
+    <input type="hidden" id="raceId" />
+    <input type="hidden" id="raceKind" />
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Nom *</label><input class="form-input" id="rName" placeholder="UTMB, Maxi Race…" /></div>
+      <div class="form-group"><label class="form-label">Date *</label><input class="form-input" type="date" id="rDate" /></div>
+      <div class="form-group"><label class="form-label">Lieu</label><input class="form-input" id="rLocation" placeholder="Chamonix, France" /></div>
+      <div class="form-group"><label class="form-label">Distance (km)</label><input class="form-input" type="number" id="rDistance" /></div>
+      <div class="form-group"><label class="form-label">Dénivelé+ (m)</label><input class="form-input" type="number" id="rDplus" /></div>
+      <div class="form-group"><label class="form-label">Type</label>
+        <select class="form-select" id="rType"><option value="trail">Trail</option><option value="ultra">Ultra</option><option value="sky">Skyrace</option><option value="route">Route</option></select>
+      </div>
+      <!-- Upcoming only -->
+      <div class="form-group upcoming-field"><label class="form-label">Statut</label>
+        <select class="form-select" id="rStatus"><option value="objectif">🎯 Objectif</option><option value="inscrit">✅ Inscrit</option><option value="selection">⚡ En sélection</option></select>
+      </div>
+      <div class="form-group upcoming-field"><label class="form-label">Image de la course</label>
+        <input type="file" id="rImgFile" accept="image/*" />
+        <div class="form-hint">Image affichée sur la carte</div>
+      </div>
+      <!-- Past only -->
+      <div class="form-group past-field" style="display:none"><label class="form-label">Temps (ex: 12h34')</label><input class="form-input" id="rTime" /></div>
+      <div class="form-group past-field" style="display:none"><label class="form-label">Classement (ex: 23ème/450)</label><input class="form-input" id="rRank" /></div>
+      <div class="form-group past-field full" style="display:none">
+        <label class="form-label">Vidéos de la course</label>
+        <input type="file" id="rVidFiles" accept="video/*" multiple />
+        <div class="form-hint">MP4, MOV · Plusieurs vidéos possibles</div>
+        <div id="rVidExisting" style="margin-top:0.5rem"></div>
+      </div>
+      <div class="form-group full"><label class="form-label">Notes</label><textarea class="form-textarea" id="rNotes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="raceModalClose">Annuler</button>
+      <button class="btn btn-primary" id="raceModalSave">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL MATÉRIEL ─── -->
+<div class="modal-overlay" id="matModal">
+  <div class="modal">
+    <div class="modal-title" id="matModalTitle">Ajouter un équipement</div>
+    <input type="hidden" id="matId" />
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Nom *</label><input class="form-input" id="mNom" placeholder="Vest Salomon Advanced Skin 12" /></div>
+      <div class="form-group"><label class="form-label">Catégorie</label>
+        <select class="form-select" id="mCat">
+          <option>Chaussures</option><option>Vêtements</option><option>Sac & Hydratation</option>
+          <option>Nutrition</option><option>Électronique</option><option>Accessoires</option><option>Autre</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Marque</label><input class="form-input" id="mMarque" placeholder="Salomon, Hoka, Garmin…" /></div>
+      <div class="form-group full"><label class="form-label">Description</label><textarea class="form-textarea" id="mDesc" rows="2" placeholder="Pourquoi vous l'utilisez, depuis quand…"></textarea></div>
+      <div class="form-group full"><label class="form-label">Mon avis</label><input class="form-input" id="mAvis" placeholder="Excellent pour les longues distances…" /></div>
+      <div class="form-group full"><label class="form-label">Photo</label>
+        <input type="file" id="mImgFile" accept="image/*" />
+        <div id="mImgPreview" style="margin-top:0.5rem"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="matModalClose">Annuler</button>
+      <button class="btn btn-primary" id="matModalSave">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="shared.js"></script>
+<script>
+  let currentPanel = 'accueil';
+  let currentUser = null;
+
+  // ─── AUTH ───
+  async function checkAuth() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+    currentUser = session.user;
+    const { data: p } = await sb.from('profiles').select('role, full_name').eq('id', currentUser.id).single();
+    if (!p || p.role !== 'admin') { window.location.href = 'index.html'; return; }
+    const name = p.full_name || currentUser.email.split('@')[0];
+    document.getElementById('sidebarName').textContent = name;
+    document.getElementById('sidebarAv').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('authCheck').style.display = 'none';
+    document.getElementById('authCheck').remove();
+    loadPanel('accueil');
+  }
+
+  // ─── NAV ───
+  document.querySelectorAll('.nav-link[data-panel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadPanel(btn.dataset.panel);
+    });
+  });
+
+  const panelTitles = { accueil: 'Page d\'accueil', stats: 'Statistiques', past: 'Courses terminées', upcoming: 'Prochaines courses', materiel: 'Mon matériel' };
+
+  async function loadPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + id)?.classList.add('active');
+    document.getElementById('topbarTitle').textContent = panelTitles[id] || id;
+    currentPanel = id;
+    if (id === 'accueil') loadAccueil();
+    else if (id === 'stats') loadStats();
+    else if (id === 'past') loadPastTable();
+    else if (id === 'upcoming') loadUpcomingTable();
+    else if (id === 'materiel') loadMatTable();
+  }
+
+  // ─── ACCUEIL ───
+  async function loadAccueil() {
+    const { data: p } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+    if (p) {
+      document.getElementById('pfHeroTitle').value = p.hero_title || '';
+      document.getElementById('pfBio').value = p.bio || '';
+      if (p.photo_url) {
+        const preview = document.getElementById('pfPhotoPreview');
+        preview.src = p.photo_url; preview.style.display = '';
+      }
+    }
+  }
+
+  document.getElementById('pfPhotoFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { const p = document.getElementById('pfPhotoPreview'); p.src = ev.target.result; p.style.display = ''; };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('btnSaveAccueil').addEventListener('click', async () => {
+    const btn = document.getElementById('btnSaveAccueil');
+    btn.disabled = true; btn.textContent = 'Enregistrement…';
+    let photo_url = null;
+    const file = document.getElementById('pfPhotoFile').files[0];
+    if (file) {
+      try { photo_url = await uploadImage(file, 'images', 'profile'); }
+      catch (e) { toast('Erreur upload photo : ' + e.message, 'error'); btn.disabled = false; btn.textContent = '💾 Enregistrer'; return; }
+    }
+    const payload = { id: currentUser.id, hero_title: document.getElementById('pfHeroTitle').value, bio: document.getElementById('pfBio').value, role: 'admin' };
+    if (photo_url) payload.photo_url = photo_url;
+    const { error } = await sb.from('profiles').upsert(payload);
+    btn.disabled = false; btn.textContent = '💾 Enregistrer';
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Page d\'accueil mise à jour ✅');
+  });
+
+  // ─── STATS ───
+  async function loadStats() {
+    const { data: s } = await sb.from('stats').select('*').single();
+    if (s) { document.getElementById('stRaces').value = s.total_races || ''; document.getElementById('stKm').value = s.total_km || ''; document.getElementById('stDplus').value = s.total_dplus || ''; document.getElementById('stYears').value = s.years_running || ''; }
+  }
+  document.getElementById('btnSaveStats').addEventListener('click', async () => {
+    const payload = { total_races: +document.getElementById('stRaces').value||0, total_km: +document.getElementById('stKm').value||0, total_dplus: +document.getElementById('stDplus').value||0, years_running: +document.getElementById('stYears').value||0 };
+    const { data: ex } = await sb.from('stats').select('id').single();
+    let error;
+    if (ex?.id) ({ error } = await sb.from('stats').update(payload).eq('id', ex.id));
+    else ({ error } = await sb.from('stats').insert(payload));
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Statistiques enregistrées ✅');
+  });
+
+  // ─── PAST TABLE ───
+  async function loadPastTable() {
+    const { data: races } = await sb.from('races').select('*').eq('type','past').order('date',{ascending:false});
+    const tbody = document.getElementById('pastTable');
+    if (!races?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:2rem">Aucune course — ajoutez-en une !</td></tr>'; return; }
+    tbody.innerHTML = races.map(r => `<tr>
+      <td><strong>${r.name}</strong></td>
+      <td>${fmtDate(r.date)}</td>
+      <td>${r.finish_time||'—'}</td>
+      <td>${r.rank||'—'}</td>
+      <td>${r.videos?.length ? `🎬 ${r.videos.length}` : '—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="openRaceModal('past','${r.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRace('${r.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+  }
+
+  // ─── UPCOMING TABLE ───
+  async function loadUpcomingTable() {
+    const { data: races } = await sb.from('races').select('*').eq('type','upcoming').order('date',{ascending:true});
+    const tbody = document.getElementById('upcomingTable');
+    if (!races?.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:2rem">Aucune course — ajoutez-en une !</td></tr>'; return; }
+    tbody.innerHTML = races.map(r => `<tr>
+      <td><strong>${r.name}</strong></td>
+      <td>${fmtDate(r.date)}</td>
+      <td>${r.location||'—'}</td>
+      <td>${r.distance ? r.distance+' km' : '—'}</td>
+      <td><span class="badge badge-blue">${r.status||'objectif'}</span></td>
+      <td>${r.image_url ? '🖼️ Oui' : '—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="openRaceModal('upcoming','${r.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRace('${r.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+  }
+
+  // ─── MODAL COURSE ───
+  document.getElementById('btnAddPast').addEventListener('click', () => openRaceModal('past'));
+  document.getElementById('btnAddUpcoming').addEventListener('click', () => openRaceModal('upcoming'));
+  document.getElementById('raceModalClose').addEventListener('click', () => document.getElementById('raceModal').classList.remove('open'));
+
+  async function openRaceModal(kind, id = null) {
+    document.getElementById('raceKind').value = kind;
+    document.getElementById('raceId').value = id || '';
+    document.getElementById('raceModalTitle').textContent = id ? 'Modifier la course' : 'Ajouter une course';
+    document.querySelectorAll('.upcoming-field').forEach(el => el.style.display = kind==='upcoming' ? '' : 'none');
+    document.querySelectorAll('.past-field').forEach(el => el.style.display = kind==='past' ? '' : 'none');
+    ['rName','rDate','rLocation','rDistance','rDplus','rTime','rRank','rNotes'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('rVidExisting').innerHTML = '';
+    if (id) {
+      const { data: r } = await sb.from('races').select('*').eq('id',id).single();
+      if (r) {
+        document.getElementById('rName').value = r.name||'';
+        document.getElementById('rDate').value = r.date||'';
+        document.getElementById('rLocation').value = r.location||'';
+        document.getElementById('rDistance').value = r.distance||'';
+        document.getElementById('rDplus').value = r.dplus||'';
+        document.getElementById('rType').value = r.race_type||'trail';
+        document.getElementById('rStatus').value = r.status||'objectif';
+        document.getElementById('rTime').value = r.finish_time||'';
+        document.getElementById('rRank').value = r.rank||'';
+        document.getElementById('rNotes').value = r.notes||'';
+        if (r.videos?.length) {
+          document.getElementById('rVidExisting').innerHTML = `<div style="font-size:0.78rem;color:var(--gray-500);margin-top:0.25rem">Vidéos existantes : ${r.videos.length} · Les nouvelles s'ajouteront</div>`;
+        }
+      }
+    }
+    document.getElementById('raceModal').classList.add('open');
+  }
+
+  document.getElementById('raceModalSave').addEventListener('click', async () => {
+    const kind = document.getElementById('raceKind').value;
+    const raceId = document.getElementById('raceId').value;
+    if (!document.getElementById('rName').value || !document.getElementById('rDate').value) return toast('Nom et date obligatoires', 'error');
+    const btn = document.getElementById('raceModalSave');
+    btn.disabled = true; btn.textContent = 'Enregistrement…';
+
+    // Upload image (upcoming)
+    let image_url = null;
+    const imgFile = document.getElementById('rImgFile').files[0];
+    if (imgFile) {
+      try { image_url = await uploadImage(imgFile, 'images', 'races'); } catch(e) { toast('Erreur image : '+e.message,'error'); btn.disabled=false;btn.textContent='💾 Enregistrer';return; }
+    }
+
+    // Upload vidéos (past)
+    let videos = [];
+    if (kind === 'past' && raceId) {
+      const { data: ex } = await sb.from('races').select('videos').eq('id',raceId).single();
+      videos = ex?.videos || [];
+    }
+    const vidFiles = document.getElementById('rVidFiles').files;
+    for (const vf of vidFiles) {
+      try { const url = await uploadVideo(vf, 'races'); videos.push(url); } catch(e) { toast('Erreur vidéo : '+e.message,'error'); }
+    }
+
+    const payload = {
+      name: document.getElementById('rName').value,
+      date: document.getElementById('rDate').value,
+      location: document.getElementById('rLocation').value,
+      distance: parseFloat(document.getElementById('rDistance').value)||null,
+      dplus: parseInt(document.getElementById('rDplus').value)||null,
+      race_type: document.getElementById('rType').value,
+      type: kind,
+      notes: document.getElementById('rNotes').value,
+    };
+    if (kind==='upcoming') { payload.status = document.getElementById('rStatus').value; if(image_url) payload.image_url = image_url; }
+    if (kind==='past') { payload.finish_time = document.getElementById('rTime').value; payload.rank = document.getElementById('rRank').value; payload.videos = videos; }
+
+    let error;
+    if (raceId) ({ error } = await sb.from('races').update(payload).eq('id',raceId));
+    else ({ error } = await sb.from('races').insert(payload));
+    btn.disabled=false; btn.textContent='💾 Enregistrer';
+    if (error) return toast('Erreur : '+error.message,'error');
+    toast('Course enregistrée ✅');
+    document.getElementById('raceModal').classList.remove('open');
+    kind==='past' ? loadPastTable() : loadUpcomingTable();
+  });
+
+  async function deleteRace(id) {
+    if (!confirm('Supprimer cette course ?')) return;
+    const { error } = await sb.from('races').delete().eq('id',id);
+    if (error) return toast('Erreur : '+error.message,'error');
+    toast('Supprimée ✅');
+    currentPanel==='past' ? loadPastTable() : loadUpcomingTable();
+  }
+
+  // ─── MATÉRIEL TABLE ───
+  async function loadMatTable() {
+    const { data: items } = await sb.from('materiel').select('*').order('categorie');
+    const tbody = document.getElementById('matTable');
+    if (!items?.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:2rem">Aucun équipement — ajoutez-en un !</td></tr>'; return; }
+    tbody.innerHTML = items.map(i => `<tr>
+      <td><strong>${i.nom}</strong></td>
+      <td><span class="badge badge-blue">${i.categorie||'—'}</span></td>
+      <td>${i.marque||'—'}</td>
+      <td>${i.image_url ? '🖼️ Oui' : '—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="openMatModal('${i.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMat('${i.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+  }
+
+  document.getElementById('btnAddMat').addEventListener('click', () => openMatModal());
+  document.getElementById('matModalClose').addEventListener('click', () => document.getElementById('matModal').classList.remove('open'));
+
+  async function openMatModal(id = null) {
+    document.getElementById('matId').value = id||'';
+    document.getElementById('matModalTitle').textContent = id ? 'Modifier l\'équipement' : 'Ajouter un équipement';
+    ['mNom','mMarque','mDesc','mAvis'].forEach(i => document.getElementById(i).value='');
+    document.getElementById('mImgPreview').innerHTML='';
+    if (id) {
+      const { data: item } = await sb.from('materiel').select('*').eq('id',id).single();
+      if (item) {
+        document.getElementById('mNom').value=item.nom||'';
+        document.getElementById('mCat').value=item.categorie||'Autre';
+        document.getElementById('mMarque').value=item.marque||'';
+        document.getElementById('mDesc').value=item.description||'';
+        document.getElementById('mAvis').value=item.avis||'';
+        if (item.image_url) document.getElementById('mImgPreview').innerHTML=`<img src="${item.image_url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;margin-top:0.25rem" />`;
+      }
+    }
+    document.getElementById('matModal').classList.add('open');
+  }
+
+  document.getElementById('matModalSave').addEventListener('click', async () => {
+    const id = document.getElementById('matId').value;
+    if (!document.getElementById('mNom').value) return toast('Nom obligatoire', 'error');
+    const btn = document.getElementById('matModalSave');
+    btn.disabled=true; btn.textContent='Enregistrement…';
+    let image_url = null;
+    const imgFile = document.getElementById('mImgFile').files[0];
+    if (imgFile) {
+      try { image_url = await uploadImage(imgFile, 'images', 'materiel'); } catch(e) { toast('Erreur image : '+e.message,'error'); btn.disabled=false;btn.textContent='💾 Enregistrer';return; }
+    }
+    const payload = { nom: document.getElementById('mNom').value, categorie: document.getElementById('mCat').value, marque: document.getElementById('mMarque').value, description: document.getElementById('mDesc').value, avis: document.getElementById('mAvis').value };
+    if (image_url) payload.image_url = image_url;
+    let error;
+    if (id) ({ error } = await sb.from('materiel').update(payload).eq('id',id));
+    else ({ error } = await sb.from('materiel').insert(payload));
+    btn.disabled=false; btn.textContent='💾 Enregistrer';
+    if (error) return toast('Erreur : '+error.message,'error');
+    toast('Équipement enregistré ✅');
+    document.getElementById('matModal').classList.remove('open');
+    loadMatTable();
+  });
+
+  async function deleteMat(id) {
+    if (!confirm('Supprimer cet équipement ?')) return;
+    const { error } = await sb.from('materiel').delete().eq('id',id);
+    if (error) return toast('Erreur : '+error.message,'error');
+    toast('Supprimé ✅'); loadMatTable();
+  }
+
+  document.getElementById('btnLogout').addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
+
+  checkAuth();
+</script>
+</body>
+</html>

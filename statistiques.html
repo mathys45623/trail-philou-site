@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Statistiques — Trail Philou</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .big-stat {
+      background: white; border-radius: var(--r-xl); border: 1px solid var(--gray-200);
+      padding: 2rem; text-align: center;
+    }
+    .big-stat .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .big-stat .val {
+      font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 900;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .big-stat .lbl { font-size: 0.8rem; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
+    .big-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .year-bar { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--gray-100); }
+    .year-bar:last-child { border-bottom: none; }
+    .year-label { font-weight: 700; color: var(--gray-800); min-width: 50px; font-size: 0.9rem; }
+    .bar-track { flex: 1; height: 10px; background: var(--gray-100); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width 0.8s ease; }
+    .bar-val { font-size: 0.8rem; font-weight: 600; color: var(--gray-600); min-width: 60px; text-align: right; }
+    .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .kpi-box { background: var(--gray-50); border-radius: var(--r-md); padding: 1rem 1.25rem; }
+    .kpi-box .k-val { font-family: 'Montserrat', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--gray-900); }
+    .kpi-box .k-lbl { font-size: 0.75rem; color: var(--gray-400); font-weight: 500; }
+  </style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="logo">TRAIL PHILOU</div><div class="logo-sub">Mon univers trail</div></div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-link"><span class="ni">🏠</span> Accueil</a>
+    <div class="sidebar-section">Mon trail</div>
+    <a href="statistiques.html" class="nav-link active"><span class="ni">📊</span> Statistiques</a>
+    <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
+    <a href="prochaines-courses.html" class="nav-link"><span class="ni">🗓️</span> Prochaines courses</a>
+    <a href="materiel.html" class="nav-link"><span class="ni">🎒</span> Mon matériel</a>
+    <div style="flex:1"></div>
+  </nav>
+  <div class="sidebar-bottom" id="userBottom" style="display:none">
+    <div class="user-pill">
+      <div class="user-avatar" id="userAv">?</div>
+      <div class="user-name" id="userName">—</div>
+      <button class="btn-logout" id="btnLogout">⎋</button>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-title">📊 Statistiques</div>
+    <div class="page-sub">Tous mes chiffres en trail</div>
+  </div>
+  <div class="page-content">
+    <div class="big-grid" id="bigGrid">
+      <div class="big-stat"><div class="icon">🏅</div><div class="val" id="stRaces">—</div><div class="lbl">Courses finies</div></div>
+      <div class="big-stat"><div class="icon">📏</div><div class="val" id="stKm">—</div><div class="lbl">Kilomètres totaux</div></div>
+      <div class="big-stat"><div class="icon">⛰️</div><div class="val" id="stDplus">—</div><div class="lbl">Dénivelé total (m)</div></div>
+      <div class="big-stat"><div class="icon">🗓️</div><div class="val" id="stYears">—</div><div class="lbl">Années de pratique</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Courses par année</div></div>
+      <div class="card-body" id="yearBars"><p style="color:var(--gray-400)">Chargement…</p></div>
+    </div>
+
+    <div style="margin-top:1.5rem" class="card">
+      <div class="card-header"><div class="card-title">Records personnels</div></div>
+      <div class="card-body">
+        <div class="kpi-row" id="records">
+          <div class="kpi-box"><div class="k-val" id="recBest">—</div><div class="k-lbl">Meilleur classement</div></div>
+          <div class="kpi-box"><div class="k-val" id="recLong">—</div><div class="k-lbl">Plus longue distance (km)</div></div>
+          <div class="kpi-box"><div class="k-val" id="recDplus">—</div><div class="k-lbl">Plus grand D+ (m)</div></div>
+          <div class="kpi-box"><div class="k-val" id="recYear">—</div><div class="k-lbl">Année la plus active</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="shared.js"></script>
+<script>
+  async function loadPage() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      document.getElementById('userBottom').style.display = '';
+      const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
+    }
+
+    const { data: stats } = await sb.from('stats').select('*').single();
+    if (stats) {
+      document.getElementById('stRaces').textContent = stats.total_races || 0;
+      document.getElementById('stKm').textContent = (stats.total_km || 0) + ' km';
+      document.getElementById('stDplus').textContent = (stats.total_dplus || 0).toLocaleString();
+      document.getElementById('stYears').textContent = (stats.years_running || 0) + ' ans';
+    }
+
+    // Courses par année
+    const { data: races } = await sb.from('races').select('date, distance, dplus, rank').eq('type', 'past');
+    if (races && races.length) {
+      const byYear = {};
+      let maxDist = 0, maxDplus = 0, bestRank = null, yearCounts = {};
+      races.forEach(r => {
+        const y = new Date(r.date).getFullYear();
+        byYear[y] = (byYear[y] || 0) + 1;
+        yearCounts[y] = (yearCounts[y] || 0) + 1;
+        if (r.distance && r.distance > maxDist) maxDist = r.distance;
+        if (r.dplus && r.dplus > maxDplus) maxDplus = r.dplus;
+        if (r.rank) {
+          const num = parseInt(r.rank);
+          if (!bestRank || num < parseInt(bestRank)) bestRank = r.rank;
+        }
+      });
+      const maxCount = Math.max(...Object.values(byYear));
+      const sortedYears = Object.keys(byYear).sort((a,b) => b-a);
+      document.getElementById('yearBars').innerHTML = sortedYears.map(y => `
+        <div class="year-bar">
+          <div class="year-label">${y}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(byYear[y]/maxCount*100)}%"></div></div>
+          <div class="bar-val">${byYear[y]} course${byYear[y]>1?'s':''}</div>
+        </div>`).join('');
+
+      document.getElementById('recBest').textContent = bestRank || '—';
+      document.getElementById('recLong').textContent = maxDist ? maxDist + ' km' : '—';
+      document.getElementById('recDplus').textContent = maxDplus ? maxDplus.toLocaleString() + ' m' : '—';
+      const bestYear = Object.entries(yearCounts).sort((a,b) => b[1]-a[1])[0];
+      document.getElementById('recYear').textContent = bestYear ? bestYear[0] + ' (' + bestYear[1] + ' courses)' : '—';
+    } else {
+      document.getElementById('yearBars').innerHTML = '<div class="empty"><div class="empty-icon">📊</div><p>Aucune donnée encore</p></div>';
+    }
+  }
+
+  document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
+  loadPage();
+</script>
+</body>
+</html>
