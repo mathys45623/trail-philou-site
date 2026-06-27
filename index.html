@@ -406,6 +406,39 @@
     }
     .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
 
+    /* ─── BLUR POUR NON-CONNECTÉS ─── */
+    .blurable { transition: filter 0.4s ease; }
+    body.not-logged .blurable { filter: blur(6px); pointer-events: none; user-select: none; }
+    .blur-overlay {
+      display: none; position: fixed; inset: 0; z-index: 90;
+      align-items: center; justify-content: center;
+    }
+    body.not-logged .blur-overlay { display: flex; }
+    .blur-cta-box {
+      background: white; border-radius: var(--radius-xl);
+      padding: 2.5rem 2rem; text-align: center; max-width: 360px; margin: 1rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      border: 1px solid var(--gray-100);
+    }
+    .blur-cta-box .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .blur-cta-box h3 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--gray-900); }
+    .blur-cta-box p { color: var(--gray-400); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.6; }
+
+    /* ─── BOUTON DÉCONNEXION ─── */
+    .btn-deconnexion {
+      background: var(--gray-100) !important;
+      color: var(--gray-700) !important;
+      padding: 0.5rem 1.25rem;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      border: none; cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-deconnexion:hover { background: var(--gray-200) !important; }
+
     /* ─── RESPONSIVE ─── */
     @media (max-width: 768px) {
       .about-grid { grid-template-columns: 1fr; }
@@ -426,9 +459,20 @@
     <a href="#about">À propos</a>
     <a href="#upcoming">Prochaines courses</a>
     <a href="#past">Palmarès</a>
-    <a href="#" class="btn-connexion" id="openAuth">Connexion</a>
+    <a href="#" class="btn-connexion" id="openAuth" style="display:none">Connexion</a>
+    <button class="btn-deconnexion" id="btnDeconnexion" style="display:none">👋 Déconnexion</button>
   </div>
 </nav>
+
+<!-- ─── OVERLAY FLOU ─── -->
+<div class="blur-overlay" id="blurOverlay">
+  <div class="blur-cta-box">
+    <div class="icon">🔒</div>
+    <h3>Contenu réservé</h3>
+    <p>Connectez-vous ou créez un compte gratuit pour voir toutes mes courses et informations.</p>
+    <a href="#" class="btn-primary" id="openAuthBlur" style="display:inline-flex">Se connecter</a>
+  </div>
+</div>
 
 <!-- ─── HERO ─── -->
 <section class="hero" id="home">
@@ -465,7 +509,7 @@
 </section>
 
 <!-- ─── À PROPOS ─── -->
-<section id="about">
+<section id="about" class="blurable">
   <div class="container">
     <div class="about-grid">
       <div class="about-img-wrap">
@@ -494,7 +538,7 @@
 </section>
 
 <!-- ─── PROCHAINES COURSES ─── -->
-<section id="upcoming">
+<section id="upcoming" class="blurable">
   <div class="container">
     <div class="hero-eyebrow" style="display:inline-flex; margin-bottom:1rem;">Agenda 2025</div>
     <h2 class="section-title">Prochaines courses</h2>
@@ -506,7 +550,7 @@
 </section>
 
 <!-- ─── COURSES PASSÉES ─── -->
-<section id="past">
+<section id="past" class="blurable">
   <div class="container">
     <div class="hero-eyebrow" style="display:inline-flex; margin-bottom:1rem;">Palmarès</div>
     <h2 class="section-title">Courses terminées</h2>
@@ -578,22 +622,23 @@
 </div>
 
 <script>
-  // ─── CONFIG SUPABASE ───
-  // ⚠️ Remplacez ces valeurs par vos clés Supabase
   const SUPABASE_URL = 'https://yhkbpshmhtqznduwhcrj.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inloa2Jwc2htaHRxem5kdXdoY3JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk5MjUsImV4cCI6MjA5ODEzNTkyNX0.lY_h5h1RZZsCbgYHA-Ju3K2YTpwXvtwBo-LgZpQhynU';
 
   const { createClient } = supabase;
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ─── MODAL ───
   const overlay = document.getElementById('modalOverlay');
-  const openBtns = [document.getElementById('openAuth'), document.getElementById('openAuth2')];
-  openBtns.forEach(b => b && b.addEventListener('click', e => { e.preventDefault(); overlay.classList.add('open'); }));
+
+  // ─── OUVRIR MODAL ───
+  function openModal() { overlay.classList.add('open'); }
+  document.getElementById('openAuth').addEventListener('click', e => { e.preventDefault(); openModal(); });
+  document.getElementById('openAuth2')?.addEventListener('click', e => { e.preventDefault(); openModal(); });
+  document.getElementById('openAuthBlur').addEventListener('click', e => { e.preventDefault(); openModal(); });
   document.getElementById('closeModal').addEventListener('click', () => overlay.classList.remove('open'));
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
 
-  // Tabs
+  // ─── TABS ───
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -609,7 +654,7 @@
     setTimeout(() => { el.style.display = 'none'; }, 5000);
   }
 
-  // Login
+  // ─── LOGIN ───
   document.getElementById('btnLogin').addEventListener('click', async () => {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
@@ -618,31 +663,64 @@
     btn.disabled = true; btn.textContent = 'Connexion…';
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     btn.disabled = false; btn.textContent = 'Se connecter';
-    if (error) return showMsg('loginMsg', error.message, 'error');
+    if (error) return showMsg('loginMsg', 'Email ou mot de passe incorrect.', 'error');
     overlay.classList.remove('open');
-    // Redirect si admin
     const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
-    if (profile?.role === 'admin') window.location.href = 'dashboard.html';
-    else showMsg('loginMsg', 'Connecté avec succès !', 'success');
+    if (profile?.role === 'admin') { window.location.href = 'dashboard.html'; return; }
+    updateAuthUI(true);
   });
 
-  // Signup
+  // ─── INSCRIPTION (sans vérification email) ───
   document.getElementById('btnSignup').addEventListener('click', async () => {
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
     if (!name || !email || !password) return showMsg('signupMsg', 'Remplissez tous les champs.', 'error');
+    if (password.length < 6) return showMsg('signupMsg', 'Mot de passe trop court (6 caractères min).', 'error');
     const btn = document.getElementById('btnSignup');
     btn.disabled = true; btn.textContent = 'Création…';
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    const { data, error } = await sb.auth.signUp({
+      email, password,
+      options: { data: { full_name: name }, emailRedirectTo: null }
+    });
     btn.disabled = false; btn.textContent = 'Créer mon compte';
     if (error) return showMsg('signupMsg', error.message, 'error');
-    showMsg('signupMsg', 'Compte créé ! Vérifiez votre email.', 'success');
+    // Connexion directe sans attendre confirmation email
+    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+    if (loginErr) {
+      showMsg('signupMsg', 'Compte créé ! Connectez-vous maintenant.', 'success');
+      return;
+    }
+    overlay.classList.remove('open');
+    updateAuthUI(true);
   });
+
+  // ─── DÉCONNEXION ───
+  document.getElementById('btnDeconnexion').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    updateAuthUI(false);
+  });
+
+  // ─── MISE À JOUR UI SELON CONNEXION ───
+  function updateAuthUI(loggedIn) {
+    document.getElementById('openAuth').style.display = loggedIn ? 'none' : '';
+    document.getElementById('btnDeconnexion').style.display = loggedIn ? '' : 'none';
+    if (loggedIn) {
+      document.body.classList.remove('not-logged');
+    } else {
+      document.body.classList.add('not-logged');
+    }
+  }
+
+  // ─── VÉRIFIER SESSION AU CHARGEMENT ───
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    updateAuthUI(!!session);
+    loadData();
+  }
 
   // ─── CHARGER LES DONNÉES ───
   async function loadData() {
-    // Profil
     const { data: profile } = await sb.from('profiles').select('*').eq('role', 'admin').single();
     if (profile) {
       document.getElementById('aboutName').textContent = profile.full_name || 'Trail Runner';
@@ -656,7 +734,6 @@
       }
     }
 
-    // Stats
     const { data: stats } = await sb.from('stats').select('*').single();
     if (stats) {
       document.getElementById('statCourses').textContent = stats.total_races || '0';
@@ -664,9 +741,7 @@
       document.getElementById('statD+').textContent = stats.total_dplus ? stats.total_dplus + ' m' : '—';
     }
 
-    // Prochaines courses
-    const { data: upcoming } = await sb.from('races')
-      .select('*').eq('type', 'upcoming').order('date', { ascending: true });
+    const { data: upcoming } = await sb.from('races').select('*').eq('type', 'upcoming').order('date', { ascending: true });
     const upEl = document.getElementById('upcomingRaces');
     if (!upcoming || upcoming.length === 0) {
       upEl.innerHTML = '<div class="empty-state"><div class="icon">🗓️</div><p>Aucune course à venir pour le moment</p></div>';
@@ -691,9 +766,7 @@
         </div>`).join('');
     }
 
-    // Courses passées
-    const { data: past } = await sb.from('races')
-      .select('*').eq('type', 'past').order('date', { ascending: false });
+    const { data: past } = await sb.from('races').select('*').eq('type', 'past').order('date', { ascending: false });
     const pastEl = document.getElementById('pastRaces');
     if (!past || past.length === 0) {
       pastEl.innerHTML = '<div class="empty-state"><div class="icon">🏅</div><p>Aucune course enregistrée</p></div>';
@@ -720,15 +793,14 @@
 
   function formatDate(dateStr) {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   }
   function statusLabel(s) {
     const map = { inscrit: '✅ Inscrit', objectif: '🎯 Objectif', selection: '⚡ Sélection' };
     return map[s] || s || 'Objectif';
   }
 
-  loadData();
+  init();
 </script>
 </body>
 </html>
