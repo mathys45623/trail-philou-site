@@ -6,6 +6,64 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    .races-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+    .race-thumb {
+      background: white; border-radius: var(--r-lg);
+      border: 1px solid var(--gray-200); cursor: pointer; overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .race-thumb:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.1); border-color: var(--green-mid); }
+    .race-thumb-img { aspect-ratio: 16/9; overflow: hidden; background: var(--gray-100); }
+    .race-thumb-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+    .race-thumb:hover .race-thumb-img img { transform: scale(1.04); }
+    .race-thumb-img .no-img { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2.5rem; background: linear-gradient(135deg, var(--blue-light), var(--green-light)); }
+    .race-thumb-body { padding: 1.25rem; }
+    .race-thumb-date { font-size: 0.75rem; font-weight: 700; color: var(--green); margin-bottom: 0.35rem; }
+    .race-thumb-name { font-family: 'Montserrat', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--gray-900); margin-bottom: 0.3rem; line-height: 1.25; }
+    .race-thumb-loc { font-size: 0.8rem; color: var(--gray-400); margin-bottom: 0.75rem; }
+    .race-thumb-footer { border-top: 1px solid var(--gray-100); padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+    .race-thumb-specs { display: flex; gap: 0.75rem; font-size: 0.78rem; color: var(--gray-500); }
+
+    /* DRAWER */
+    .detail-overlay { display: none; position: fixed; inset: 0; z-index: 150; background: rgba(15,26,33,0.5); backdrop-filter: blur(3px); }
+    .detail-overlay.open { display: block; }
+    .detail-drawer { position: fixed; top: 0; right: -100%; bottom: 0; width: min(620px, 100vw); background: white; z-index: 151; overflow-y: auto; transition: right 0.35s cubic-bezier(0.4,0,0.2,1); box-shadow: -8px 0 40px rgba(0,0,0,0.15); }
+    .detail-drawer.open { right: 0; }
+    .drawer-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+    .drawer-img-placeholder { width: 100%; aspect-ratio: 16/9; background: linear-gradient(135deg, var(--blue-light), var(--green-light)); display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+    .drawer-header { padding: 1.5rem 1.75rem 1.25rem; border-bottom: 1px solid var(--gray-100); position: sticky; top: 0; background: white; z-index: 10; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+    .drawer-close { background: var(--gray-100); border: none; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+    .drawer-close:hover { background: var(--gray-200); }
+    .drawer-title { font-family: 'Montserrat', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--gray-900); line-height: 1.2; }
+    .drawer-sub { font-size: 0.82rem; color: var(--gray-400); margin-top: 0.2rem; }
+    .drawer-body { padding: 1.5rem 1.75rem; }
+    .drawer-section { margin-bottom: 1.75rem; }
+    .drawer-section-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-400); margin-bottom: 0.875rem; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .info-box { background: var(--gray-50); border-radius: var(--r-md); padding: 0.875rem 1rem; }
+    .info-box .ib-val { font-family: 'Montserrat', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--gray-900); }
+    .info-box .ib-lbl { font-size: 0.72rem; color: var(--gray-400); margin-top: 0.1rem; }
+    .drawer-notes { background: var(--gray-50); border-radius: var(--r-md); padding: 1rem 1.25rem; font-size: 0.9rem; line-height: 1.7; color: var(--gray-600); border-left: 3px solid var(--green); }
+    .photos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+    .photo-item { aspect-ratio: 1; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--gray-200); cursor: pointer; }
+    .photo-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
+    .photo-item:hover img { transform: scale(1.05); }
+
+    .lightbox { display: none; position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: var(--r-md); }
+    .lightbox-close { position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.15); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+
+    .status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
+    .status-inscrit { background: var(--green-light); color: var(--green-dark); }
+    .status-objectif { background: var(--blue-light); color: var(--blue-dark); }
+    .status-selection { background: #fff3e0; color: #e65100; }
+  </style>
 </head>
 <body>
 <aside class="sidebar">
@@ -31,20 +89,44 @@
 <main class="main">
   <div class="page-header">
     <div class="page-title">🗓️ Prochaines courses</div>
-    <div class="page-sub">Mon agenda trail à venir</div>
+    <div class="page-sub">Cliquez sur une course pour voir tous les détails</div>
   </div>
   <div class="page-content">
-    <div class="race-grid" id="raceGrid">
+    <div class="races-grid" id="racesGrid">
       <div class="empty"><div class="empty-icon">⏳</div><p>Chargement…</p></div>
     </div>
   </div>
 </main>
 
+<!-- DRAWER -->
+<div class="detail-overlay" id="detailOverlay"></div>
+<div class="detail-drawer" id="detailDrawer">
+  <div id="drawerImgWrap"></div>
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title" id="drawerTitle">—</div>
+      <div class="drawer-sub" id="drawerSub">—</div>
+    </div>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section" id="drawerInfo"></div>
+    <div class="drawer-section" id="drawerNotes"></div>
+    <div class="drawer-section" id="drawerPhotos"></div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">✕</button>
+  <img id="lightboxImg" src="" alt="" />
+</div>
+
 <div class="toast" id="toast"></div>
 <script src="shared.js"></script>
 <script>
+  let races = [];
   const statusMap = { inscrit: '✅ Inscrit', objectif: '🎯 Objectif', selection: '⚡ Sélection' };
-  const statusColors = { inscrit: 'badge-green', objectif: 'badge-blue', selection: 'badge-gray' };
+  const statusClass = { inscrit: 'status-inscrit', objectif: 'status-objectif', selection: 'status-selection' };
 
   async function loadPage() {
     const { data: { session } } = await sb.auth.getSession();
@@ -54,36 +136,80 @@
       document.getElementById('userName').textContent = name;
       document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
     }
+    const { data } = await sb.from('races').select('*').eq('type','upcoming').order('date',{ascending:true});
+    races = data || [];
+    renderGrid();
+  }
 
-    const { data: races } = await sb.from('races').select('*').eq('type', 'upcoming').order('date', { ascending: true });
-    const el = document.getElementById('raceGrid');
-    if (!races || !races.length) {
-      el.innerHTML = '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucune course à venir pour le moment</p></div>';
-      return;
-    }
-    el.style.display = 'grid';
-    el.innerHTML = races.map(r => `
-      <div class="race-card">
-        <div class="race-card-img">
-          ${r.image_url
-            ? `<img src="${r.image_url}" alt="${r.name}" />`
-            : `<div class="no-img">🏔️</div>`}
+  function renderGrid() {
+    const el = document.getElementById('racesGrid');
+    if (!races.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucune course à venir pour le moment</p></div>'; return; }
+    el.innerHTML = races.map((r,i) => `
+      <div class="race-thumb" onclick="openDrawer(${i})">
+        <div class="race-thumb-img">
+          ${r.image_url ? `<img src="${r.image_url}" alt="${r.name}" />` : `<div class="no-img">🏔️</div>`}
         </div>
-        <div class="race-card-body">
-          <div class="race-card-date">📅 ${fmtDate(r.date)}</div>
-          <div class="race-card-name">${r.name}</div>
-          <div class="race-card-loc">📍 ${r.location || '—'}</div>
-          <div class="race-card-specs">
+        <div class="race-thumb-body">
+          <div class="race-thumb-date">📅 ${fmtDate(r.date)}</div>
+          <div class="race-thumb-name">${r.name}</div>
+          <div class="race-thumb-loc">📍 ${r.location||'—'}</div>
+        </div>
+        <div class="race-thumb-footer">
+          <div class="race-thumb-specs">
             ${r.distance ? `<span>📏 ${r.distance} km</span>` : ''}
-            ${r.dplus ? `<span>⛰️ ${r.dplus} m D+</span>` : ''}
+            ${r.dplus ? `<span>⛰️ ${r.dplus} m</span>` : ''}
           </div>
-          <div style="margin-top:0.75rem">
-            <span class="badge ${statusColors[r.status] || 'badge-blue'}">${statusMap[r.status] || r.status || 'Objectif'}</span>
-          </div>
-          ${r.notes ? `<p style="margin-top:0.75rem;font-size:0.85rem;color:var(--gray-500);line-height:1.6">${r.notes}</p>` : ''}
+          <span class="status-badge ${statusClass[r.status]||'status-objectif'}">${statusMap[r.status]||'Objectif'}</span>
         </div>
       </div>`).join('');
   }
+
+  function openDrawer(i) {
+    const r = races[i];
+    // Image
+    document.getElementById('drawerImgWrap').innerHTML = r.image_url
+      ? `<img class="drawer-img" src="${r.image_url}" alt="${r.name}" />`
+      : `<div class="drawer-img-placeholder">🏔️</div>`;
+
+    document.getElementById('drawerTitle').textContent = r.name;
+    document.getElementById('drawerSub').textContent = '📍 ' + (r.location||'—') + ' · ' + fmtDate(r.date);
+
+    // Infos
+    let html = '<div class="drawer-section-title">📋 Infos de la course</div><div class="info-grid">';
+    html += `<div class="info-box"><div class="ib-val">${r.distance ? r.distance+' km' : '—'}</div><div class="ib-lbl">Distance</div></div>`;
+    html += `<div class="info-box"><div class="ib-val">${r.dplus ? r.dplus+' m' : '—'}</div><div class="ib-lbl">Dénivelé+</div></div>`;
+    html += `<div class="info-box"><div class="ib-val">${r.race_type||'Trail'}</div><div class="ib-lbl">Type</div></div>`;
+    html += `<div class="info-box"><div class="ib-val"><span class="status-badge ${statusClass[r.status]||'status-objectif'}">${statusMap[r.status]||'Objectif'}</span></div><div class="ib-lbl">Statut</div></div>`;
+    html += '</div>';
+    document.getElementById('drawerInfo').innerHTML = html;
+
+    // Notes
+    document.getElementById('drawerNotes').innerHTML = r.notes
+      ? `<div class="drawer-section-title">📝 Notes & objectifs</div><div class="drawer-notes">${r.notes}</div>`
+      : '';
+
+    // Photos supplémentaires
+    const imgs = r.images || [];
+    document.getElementById('drawerPhotos').innerHTML = imgs.length
+      ? `<div class="drawer-section-title">🖼️ Photos (${imgs.length})</div><div class="photos-grid">${imgs.map(src=>`<div class="photo-item" onclick="openLightbox('${src}')"><img src="${src}" /></div>`).join('')}</div>`
+      : '';
+
+    document.getElementById('detailOverlay').classList.add('open');
+    document.getElementById('detailDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    document.getElementById('detailOverlay').classList.remove('open');
+    document.getElementById('detailDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('detailOverlay').addEventListener('click', closeDrawer);
+
+  function openLightbox(src) { document.getElementById('lightboxImg').src = src; document.getElementById('lightbox').classList.add('open'); }
+  document.getElementById('lightboxClose').addEventListener('click', () => document.getElementById('lightbox').classList.remove('open'));
+  document.getElementById('lightbox').addEventListener('click', e => { if(e.target===document.getElementById('lightbox')) document.getElementById('lightbox').classList.remove('open'); });
 
   document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
   loadPage();
