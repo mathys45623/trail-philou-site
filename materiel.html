@@ -2,19 +2,146 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mon matériel — Trail Philou</title>
+  <title>Courses terminées — Trail Philou</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css" />
   <style>
-    .cat-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-    .cat-btn {
-      padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.8rem; font-weight: 600;
-      border: 1.5px solid var(--gray-200); background: white; color: var(--gray-600);
-      cursor: pointer; transition: all 0.15s;
+    /* ── GRILLE DE COURSES ── */
+    .races-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
     }
-    .cat-btn.active { background: linear-gradient(135deg, var(--blue), var(--green)); color: white; border-color: transparent; }
-    .cat-btn:hover:not(.active) { border-color: var(--blue-mid); color: var(--blue); }
+    .race-thumb {
+      background: white; border-radius: var(--r-lg);
+      border: 1px solid var(--gray-200);
+      cursor: pointer; overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .race-thumb:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.1); border-color: var(--blue-mid); }
+    .race-thumb-top {
+      height: 10px;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+    }
+    .race-thumb-body { padding: 1.25rem; }
+    .race-thumb-year {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--green); margin-bottom: 0.4rem;
+    }
+    .race-thumb-name {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.05rem; font-weight: 800;
+      color: var(--gray-900); margin-bottom: 0.5rem; line-height: 1.3;
+    }
+    .race-thumb-loc { font-size: 0.8rem; color: var(--gray-400); margin-bottom: 0.875rem; }
+    .race-thumb-stats { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .race-thumb-stat {
+      background: var(--gray-50); border-radius: var(--r-sm);
+      padding: 0.3rem 0.65rem; font-size: 0.75rem; font-weight: 600; color: var(--gray-600);
+    }
+    .race-thumb-footer {
+      border-top: 1px solid var(--gray-100);
+      padding: 0.75rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .race-thumb-time {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1rem; font-weight: 800; color: var(--blue);
+    }
+    .race-thumb-rank { font-size: 0.75rem; color: var(--gray-400); }
+    .race-thumb-icons { display: flex; gap: 0.4rem; }
+    .media-icon {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+    }
+    .media-icon.has-vid { background: var(--green-light); }
+    .media-icon.has-img { background: var(--blue-light); }
+
+    /* ── PANEL DÉTAIL (drawer) ── */
+    .detail-overlay {
+      display: none; position: fixed; inset: 0; z-index: 150;
+      background: rgba(15,26,33,0.5); backdrop-filter: blur(3px);
+    }
+    .detail-overlay.open { display: block; }
+    .detail-drawer {
+      position: fixed; top: 0; right: -100%; bottom: 0;
+      width: min(620px, 100vw);
+      background: white; z-index: 151;
+      overflow-y: auto;
+      transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: -8px 0 40px rgba(0,0,0,0.15);
+    }
+    .detail-drawer.open { right: 0; }
+    .drawer-hero {
+      height: 8px;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+    }
+    .drawer-header {
+      padding: 1.5rem 1.75rem 1.25rem;
+      border-bottom: 1px solid var(--gray-100);
+      position: sticky; top: 0; background: white; z-index: 10;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+    }
+    .drawer-close {
+      background: var(--gray-100); border: none; border-radius: 50%;
+      width: 34px; height: 34px; cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background 0.15s;
+    }
+    .drawer-close:hover { background: var(--gray-200); }
+    .drawer-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.3rem; font-weight: 800; color: var(--gray-900); line-height: 1.2;
+    }
+    .drawer-sub { font-size: 0.82rem; color: var(--gray-400); margin-top: 0.2rem; }
+    .drawer-body { padding: 1.5rem 1.75rem; }
+    .drawer-section { margin-bottom: 2rem; }
+    .drawer-section-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--gray-400); margin-bottom: 0.875rem;
+    }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .result-box {
+      background: var(--gray-50); border-radius: var(--r-md); padding: 1rem;
+    }
+    .result-box .rb-val {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.4rem; font-weight: 800; color: var(--gray-900);
+    }
+    .result-box .rb-lbl { font-size: 0.72rem; color: var(--gray-400); font-weight: 500; margin-top: 0.15rem; }
+    .result-box.accent { background: var(--blue-light); }
+    .result-box.accent .rb-val { color: var(--blue-dark); }
+    .drawer-notes {
+      background: var(--gray-50); border-radius: var(--r-md);
+      padding: 1rem 1.25rem; font-size: 0.9rem; line-height: 1.7;
+      color: var(--gray-600); border-left: 3px solid var(--blue);
+    }
+    .photos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+    .photo-item {
+      aspect-ratio: 1; border-radius: var(--r-md); overflow: hidden;
+      border: 1px solid var(--gray-200); cursor: pointer;
+    }
+    .photo-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
+    .photo-item:hover img { transform: scale(1.05); }
+    .video-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .video-item { border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--gray-200); }
+    .video-item video { width: 100%; display: block; max-height: 260px; background: var(--gray-900); }
+
+    /* Lightbox photo */
+    .lightbox {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: var(--r-md); }
+    .lightbox-close {
+      position: absolute; top: 1.5rem; right: 1.5rem;
+      background: rgba(255,255,255,0.15); border: none; color: white;
+      width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+      font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -24,9 +151,9 @@
     <a href="index.html" class="nav-link"><span class="ni">🏠</span> Accueil</a>
     <div class="sidebar-section">Mon trail</div>
     <a href="statistiques.html" class="nav-link"><span class="ni">📊</span> Statistiques</a>
-    <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
+    <a href="courses-terminees.html" class="nav-link active"><span class="ni">🏆</span> Courses terminées</a>
     <a href="prochaines-courses.html" class="nav-link"><span class="ni">🗓️</span> Prochaines courses</a>
-    <a href="materiel.html" class="nav-link active"><span class="ni">🎒</span> Mon matériel</a>
+    <a href="materiel.html" class="nav-link"><span class="ni">🎒</span> Mon matériel</a>
     <div style="flex:1"></div>
   </nav>
   <div class="sidebar-bottom" id="userBottom" style="display:none">
@@ -40,25 +167,45 @@
 
 <main class="main">
   <div class="page-header">
-    <div class="page-title">🎒 Mon matériel</div>
-    <div class="page-sub">Équipement, nutrition et vêtements</div>
+    <div class="page-title">🏆 Courses terminées</div>
+    <div class="page-sub">Cliquez sur une course pour voir les détails, résultats et médias</div>
   </div>
   <div class="page-content">
-    <div class="cat-filters" id="catFilters">
-      <button class="cat-btn active" data-cat="all">Tout voir</button>
-    </div>
-    <div class="mat-grid" id="matGrid">
+    <div class="races-grid" id="racesGrid">
       <div class="empty"><div class="empty-icon">⏳</div><p>Chargement…</p></div>
     </div>
   </div>
 </main>
 
+<!-- ── DETAIL DRAWER ── -->
+<div class="detail-overlay" id="detailOverlay"></div>
+<div class="detail-drawer" id="detailDrawer">
+  <div class="drawer-hero"></div>
+  <div class="drawer-header">
+    <div>
+      <div class="drawer-title" id="drawerTitle">—</div>
+      <div class="drawer-sub" id="drawerSub">—</div>
+    </div>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section" id="drawerResults"></div>
+    <div class="drawer-section" id="drawerNotes"></div>
+    <div class="drawer-section" id="drawerPhotos"></div>
+    <div class="drawer-section" id="drawerVideos"></div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">✕</button>
+  <img id="lightboxImg" src="" alt="" />
+</div>
+
 <div class="toast" id="toast"></div>
 <script src="shared.js"></script>
 <script>
-  let allItems = [];
-
-  const catEmojis = { 'Chaussures': '👟', 'Vêtements': '👕', 'Sac & Hydratation': '🎒', 'Nutrition': '🍌', 'Électronique': '⌚', 'Accessoires': '🧤', 'Autre': '📦' };
+  let races = [];
 
   async function loadPage() {
     const { data: { session } } = await sb.auth.getSession();
@@ -69,57 +216,114 @@
       document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
     }
 
-    const { data: items } = await sb.from('materiel').select('*').order('categorie');
-    allItems = items || [];
-    buildFilters();
-    renderItems('all');
+    const { data } = await sb.from('races').select('*').eq('type', 'past').order('date', { ascending: false });
+    races = data || [];
+    renderGrid();
   }
 
-  function buildFilters() {
-    const cats = [...new Set(allItems.map(i => i.categorie).filter(Boolean))];
-    const container = document.getElementById('catFilters');
-    cats.forEach(cat => {
-      const btn = document.createElement('button');
-      btn.className = 'cat-btn';
-      btn.dataset.cat = cat;
-      btn.textContent = (catEmojis[cat] || '📦') + ' ' + cat;
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderItems(cat);
-      });
-      container.appendChild(btn);
-    });
-    container.querySelector('[data-cat="all"]').addEventListener('click', () => {
-      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      container.querySelector('[data-cat="all"]').classList.add('active');
-      renderItems('all');
-    });
-  }
-
-  function renderItems(cat) {
-    const filtered = cat === 'all' ? allItems : allItems.filter(i => i.categorie === cat);
-    const el = document.getElementById('matGrid');
-    if (!filtered.length) {
-      el.innerHTML = '<div class="empty"><div class="empty-icon">🎒</div><p>Aucun équipement dans cette catégorie</p></div>';
+  function renderGrid() {
+    const el = document.getElementById('racesGrid');
+    if (!races.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🏅</div><p>Aucune course encore enregistrée</p></div>';
       return;
     }
-    el.innerHTML = filtered.map(item => `
-      <div class="mat-card">
-        <div class="mat-card-img">
-          ${item.image_url
-            ? `<img src="${item.image_url}" alt="${item.nom}" />`
-            : `<div class="no-img">${catEmojis[item.categorie] || '📦'}</div>`}
+    el.innerHTML = races.map((r, i) => {
+      const d = new Date(r.date);
+      const hasVid = r.videos && r.videos.length;
+      const hasImg = r.images && r.images.length;
+      return `
+      <div class="race-thumb" onclick="openDrawer(${i})">
+        <div class="race-thumb-top"></div>
+        <div class="race-thumb-body">
+          <div class="race-thumb-year">${d.toLocaleDateString('fr-FR',{month:'long', year:'numeric'})}</div>
+          <div class="race-thumb-name">${r.name}</div>
+          <div class="race-thumb-loc">📍 ${r.location || '—'}</div>
+          <div class="race-thumb-stats">
+            ${r.distance ? `<span class="race-thumb-stat">📏 ${r.distance} km</span>` : ''}
+            ${r.dplus ? `<span class="race-thumb-stat">⛰️ ${r.dplus} m D+</span>` : ''}
+            ${r.race_type ? `<span class="race-thumb-stat">${r.race_type}</span>` : ''}
+          </div>
         </div>
-        <div class="mat-card-body">
-          <div class="mat-card-cat">${item.categorie || 'Matériel'}</div>
-          <div class="mat-card-name">${item.nom}</div>
-          ${item.marque ? `<div style="font-size:0.8rem;color:var(--blue);font-weight:600;margin-bottom:0.35rem">${item.marque}</div>` : ''}
-          ${item.description ? `<div class="mat-card-desc">${item.description}</div>` : ''}
-          ${item.avis ? `<div style="margin-top:0.75rem;font-size:0.82rem;color:var(--gray-500);border-top:1px solid var(--gray-100);padding-top:0.6rem">⭐ ${item.avis}</div>` : ''}
+        <div class="race-thumb-footer">
+          <div>
+            ${r.finish_time ? `<div class="race-thumb-time">${r.finish_time}</div>` : '<div style="color:var(--gray-300);font-size:0.8rem">Temps —</div>'}
+            ${r.rank ? `<div class="race-thumb-rank">${r.rank}</div>` : ''}
+          </div>
+          <div class="race-thumb-icons">
+            ${hasImg ? `<div class="media-icon has-img" title="Photos">🖼️</div>` : ''}
+            ${hasVid ? `<div class="media-icon has-vid" title="Vidéos">🎬</div>` : ''}
+          </div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
+
+  function openDrawer(i) {
+    const r = races[i];
+    const d = new Date(r.date);
+
+    document.getElementById('drawerTitle').textContent = r.name;
+    document.getElementById('drawerSub').textContent = '📍 ' + (r.location||'—') + ' · ' + d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+
+    // Résultats
+    let html = '<div class="drawer-section-title">📊 Résultats</div><div class="result-grid">';
+    html += `<div class="result-box accent"><div class="rb-val">${r.finish_time||'—'}</div><div class="rb-lbl">Temps de passage</div></div>`;
+    html += `<div class="result-box"><div class="rb-val">${r.rank||'—'}</div><div class="rb-lbl">Classement</div></div>`;
+    html += `<div class="result-box"><div class="rb-val">${r.distance ? r.distance+' km' : '—'}</div><div class="rb-lbl">Distance</div></div>`;
+    html += `<div class="result-box"><div class="rb-val">${r.dplus ? r.dplus+' m' : '—'}</div><div class="rb-lbl">Dénivelé+</div></div>`;
+    html += '</div>';
+    document.getElementById('drawerResults').innerHTML = html;
+
+    // Notes
+    if (r.notes) {
+      document.getElementById('drawerNotes').innerHTML = `<div class="drawer-section-title">📝 Notes</div><div class="drawer-notes">${r.notes}</div>`;
+    } else {
+      document.getElementById('drawerNotes').innerHTML = '';
+    }
+
+    // Photos
+    let imgs = r.images || [];
+    if (typeof imgs === 'string') { try { imgs = JSON.parse(imgs); } catch(e) { imgs = imgs.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); } }
+    if (imgs.length) {
+      document.getElementById('drawerPhotos').innerHTML = `
+        <div class="drawer-section-title">🖼️ Photos (${imgs.length})</div>
+        <div class="photos-grid">${imgs.map(src => `<div class="photo-item" onclick="openLightbox('${src}')"><img src="${src}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'" /></div>`).join('')}</div>`;
+    } else {
+      document.getElementById('drawerPhotos').innerHTML = '';
+    }
+
+    // Vidéos
+    let vids = r.videos || [];
+    if (typeof vids === 'string') { try { vids = JSON.parse(vids); } catch(e) { vids = vids.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); } }
+    if (vids.length) {
+      document.getElementById('drawerVideos').innerHTML = `
+        <div class="drawer-section-title">🎬 Vidéos (${vids.length})</div>
+        <div class="video-list">${vids.map(v => `<div class="video-item"><video src="${v}" controls preload="metadata"></video></div>`).join('')}</div>`;
+    } else {
+      document.getElementById('drawerVideos').innerHTML = '';
+    }
+
+    document.getElementById('detailOverlay').classList.add('open');
+    document.getElementById('detailDrawer').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    document.getElementById('detailOverlay').classList.remove('open');
+    document.getElementById('detailDrawer').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('detailOverlay').addEventListener('click', closeDrawer);
+
+  // Lightbox
+  function openLightbox(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('open');
+  }
+  document.getElementById('lightboxClose').addEventListener('click', () => document.getElementById('lightbox').classList.remove('open'));
+  document.getElementById('lightbox').addEventListener('click', e => { if(e.target === document.getElementById('lightbox')) document.getElementById('lightbox').classList.remove('open'); });
 
   document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
 
@@ -171,37 +375,7 @@
     else showMsg('signupMsg', 'Compte créé ! Connectez-vous.', 'success');
   });
 
-  // Charger la page ET ouvrir modal si non connecté
-  sb.auth.getSession().then(({ data: { session } }) => {
-    loadPage();
-    if (!session) {
-      document.getElementById("authOverlay").classList.add("open");
-    }
-  });
+  loadPage();
 </script>
-<!-- ─── MODAL AUTH ─── -->
-<div class="auth-overlay" id="authOverlay">
-  <div class="auth-modal">
-    <div class="auth-title">Bienvenue !</div>
-    <div class="auth-sub">Connectez-vous pour accéder à ce contenu</div>
-    <div class="auth-tabs">
-      <button class="auth-tab active" data-tab="login">Connexion</button>
-      <button class="auth-tab" data-tab="signup">Inscription</button>
-    </div>
-    <div id="tabLogin">
-      <input class="auth-input" type="email" id="loginEmail" placeholder="Email" />
-      <input class="auth-input" type="password" id="loginPassword" placeholder="Mot de passe" />
-      <button class="auth-submit" id="btnLogin">Se connecter</button>
-      <div class="auth-msg" id="loginMsg"></div>
-    </div>
-    <div id="tabSignup" style="display:none">
-      <input class="auth-input" type="text" id="signupName" placeholder="Prénom" />
-      <input class="auth-input" type="email" id="signupEmail" placeholder="Email" />
-      <input class="auth-input" type="password" id="signupPassword" placeholder="Mot de passe (6 car. min)" />
-      <button class="auth-submit" id="btnSignup">Créer mon compte</button>
-      <div class="auth-msg" id="signupMsg"></div>
-    </div>
-  </div>
-</div>
 </body>
 </html>
