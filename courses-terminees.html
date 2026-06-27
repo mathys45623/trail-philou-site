@@ -208,15 +208,6 @@
   let races = [];
 
   async function loadPage() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      document.getElementById('userBottom').style.display = '';
-      const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
-      document.getElementById('userName').textContent = name;
-      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
-    } else {
-      document.getElementById('authWall').style.display = 'flex';
-    }
 
     const { data } = await sb.from('races').select('*').eq('type', 'past').order('date', { ascending: false });
     races = data || [];
@@ -329,7 +320,17 @@
 
   document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
 
-  loadPage();
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) {
+      document.getElementById('authWall').style.display = 'flex';
+    } else {
+      document.getElementById('userBottom').style.display = '';
+      const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
+      loadPage();
+    }
+  });
 </script>
 
 <!-- ─── MODAL CONNEXION ─── -->
