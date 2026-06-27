@@ -227,15 +227,7 @@
   document.getElementById('lightbox').addEventListener('click', e => { if(e.target===document.getElementById('lightbox')) document.getElementById('lightbox').classList.remove('open'); });
 
   document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
-  // ─── AUTH GUARD ───
-  async function checkAuthGuard() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      document.getElementById('authOverlay').classList.add('open');
-      return false;
-    }
-    return true;
-  }
+
   // ─── AUTH MODAL LOGIC ───
   const authOverlay = document.getElementById('authOverlay');
 
@@ -284,7 +276,13 @@
     else showMsg('signupMsg', 'Compte créé ! Connectez-vous.', 'success');
   });
 
-  checkAuthGuard().then(ok => { if (ok) loadPage(); });
+  // Charger la page ET ouvrir modal si non connecté
+  sb.auth.getSession().then(({ data: { session } }) => {
+    loadPage();
+    if (!session) {
+      document.getElementById("authOverlay").classList.add("open");
+    }
+  });
 </script>
 <!-- ─── MODAL AUTH ─── -->
 <div class="auth-overlay" id="authOverlay">
