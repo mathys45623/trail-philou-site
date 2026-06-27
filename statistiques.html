@@ -85,6 +85,31 @@
 </main>
 
 <div class="toast" id="toast"></div>
+
+<!-- ─── MODAL CONNEXION ─── -->
+<div id="authWall" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(15,26,33,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:2.5rem;width:100%;max-width:400px;margin:1rem;box-shadow:0 24px 80px rgba(0,0,0,0.2);">
+    <div style="font-family:Montserrat,sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:0.25rem">Bienvenue !</div>
+    <div style="color:#8fa3b0;font-size:0.875rem;margin-bottom:1.5rem">Connectez-vous pour accéder à ce contenu</div>
+    <div style="display:flex;border-bottom:2px solid #eef2f5;margin-bottom:1.5rem">
+      <button onclick="awShowTab('login')" id="awTabLogin" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#1a8fd1;border-bottom:2px solid #1a8fd1;margin-bottom:-2px">Connexion</button>
+      <button onclick="awShowTab('signup')" id="awTabSignup" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#8fa3b0;border-bottom:2px solid transparent;margin-bottom:-2px">Inscription</button>
+    </div>
+    <div id="awLogin">
+      <input id="awLoginEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <input id="awLoginPass" type="password" placeholder="Mot de passe" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <button onclick="awLogin()" id="awBtnLogin" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Se connecter</button>
+      <div id="awLoginMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
+    </div>
+    <div id="awSignup" style="display:none">
+      <input id="awSignupName" type="text" placeholder="Prénom" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <input id="awSignupEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <input id="awSignupPass" type="password" placeholder="Mot de passe (6 car. min)" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
+      <button onclick="awSignup()" id="awBtnSignup" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Créer mon compte</button>
+      <div id="awSignupMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
+    </div>
+  </div>
+</div>
 <script src="shared.js"></script>
 <script>
   async function loadPage() {
@@ -192,30 +217,6 @@
   }
 </script>
 
-<!-- ─── MODAL CONNEXION ─── -->
-<div id="authWall" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(15,26,33,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:20px;padding:2.5rem;width:100%;max-width:400px;margin:1rem;box-shadow:0 24px 80px rgba(0,0,0,0.2);">
-    <div style="font-family:Montserrat,sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:0.25rem">Bienvenue !</div>
-    <div style="color:#8fa3b0;font-size:0.875rem;margin-bottom:1.5rem">Connectez-vous pour accéder à ce contenu</div>
-    <div style="display:flex;border-bottom:2px solid #eef2f5;margin-bottom:1.5rem">
-      <button onclick="awShowTab('login')" id="awTabLogin" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#1a8fd1;border-bottom:2px solid #1a8fd1;margin-bottom:-2px">Connexion</button>
-      <button onclick="awShowTab('signup')" id="awTabSignup" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#8fa3b0;border-bottom:2px solid transparent;margin-bottom:-2px">Inscription</button>
-    </div>
-    <div id="awLogin">
-      <input id="awLoginEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awLoginPass" type="password" placeholder="Mot de passe" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <button onclick="awLogin()" id="awBtnLogin" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Se connecter</button>
-      <div id="awLoginMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
-    </div>
-    <div id="awSignup" style="display:none">
-      <input id="awSignupName" type="text" placeholder="Prénom" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awSignupEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awSignupPass" type="password" placeholder="Mot de passe (6 car. min)" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <button onclick="awSignup()" id="awBtnSignup" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Créer mon compte</button>
-      <div id="awSignupMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
