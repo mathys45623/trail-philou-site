@@ -82,7 +82,7 @@
           </div>
           <div class="race-card-foot">
             <div>
-              ${r.finish_time ? `<div class="race-time">${esc(r.finish_time)}</div>` : '<div class="race-rank">Temps —</div>'}
+              ${r.dnf ? '<span class="badge badge-dnf">🚩 Abandon</span>' : r.finish_time ? `<div class="race-time">${esc(r.finish_time)}</div>` : '<div class="race-rank">Temps —</div>'}
               ${r.rank ? `<div class="race-rank">🏅 ${esc(r.rank)}</div>` : ''}
             </div>
             <div class="media-icons">
@@ -111,7 +111,7 @@
         <div class="drawer-section">
           <div class="drawer-section-title">📊 Résultat</div>
           <div class="kpi-grid">
-            <div class="kpi accent"><div class="kpi-val">${esc(r.finish_time || '—')}</div><div class="kpi-lbl">Temps</div></div>
+            <div class="kpi accent"><div class="kpi-val">${r.dnf ? 'Abandon' : esc(r.finish_time || '—')}</div><div class="kpi-lbl">${r.dnf ? 'Course non terminée' : 'Temps'}</div></div>
             <div class="kpi"><div class="kpi-val">${esc(r.rank || '—')}</div><div class="kpi-lbl">Classement</div></div>
             <div class="kpi"><div class="kpi-val">${r.distance ? esc(r.distance) + ' km' : '—'}</div><div class="kpi-lbl">Distance</div></div>
             <div class="kpi"><div class="kpi-val">${r.dplus ? fmtNum(r.dplus) + ' m' : '—'}</div><div class="kpi-lbl">Dénivelé +</div></div>
@@ -119,7 +119,9 @@
         </div>
         ${r.notes ? `<div class="drawer-section"><div class="drawer-section-title">📝 Récit</div><div class="drawer-notes">${esc(r.notes)}</div></div>` : ''}
         ${mediaSections(r)}
+        <div class="drawer-section"><div class="drawer-section-title">💬 Commentaires</div><div id="raceComments"></div></div>
       </div>`);
+    mountComments(document.getElementById('raceComments'), { raceId: r.id, placeholder: 'Un mot sur cette course ?' });
   }
 
   initPage({ requireAuth: true, onReady: loadPage });

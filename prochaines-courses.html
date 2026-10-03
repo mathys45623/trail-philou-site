@@ -104,7 +104,9 @@
         </div>
         ${r.notes ? `<div class="drawer-section"><div class="drawer-section-title">📝 Notes & objectifs</div><div class="drawer-notes">${esc(r.notes)}</div></div>` : ''}
         ${mediaSections(r)}
+        <div class="drawer-section"><div class="drawer-section-title">💬 Commentaires</div><div id="raceComments"></div></div>
       </div>`);
+    mountComments(document.getElementById('raceComments'), { raceId: r.id, placeholder: 'Un mot sur cette course ?' });
   }
 
   initPage({ requireAuth: true, onReady: loadPage });

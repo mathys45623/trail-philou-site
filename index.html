@@ -34,6 +34,9 @@
     .scroll-hint span { width: 22px; height: 34px; border: 2px solid var(--border-2); border-radius: 12px; position: relative; }
     .scroll-hint span::after { content: ''; position: absolute; left: 50%; top: 6px; width: 4px; height: 7px; margin-left: -2px; border-radius: 2px; background: var(--accent); animation: wheel 1.8s ease-in-out infinite; }
     @keyframes wheel { 0% { opacity: 0; translate: 0 0; } 30% { opacity: 1; } 100% { opacity: 0; translate: 0 10px; } }
+    .home-guestbook { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .home-guestbook .cm-empty { grid-column: 1 / -1; background: var(--surface); border: 1px dashed var(--border-2); border-radius: var(--r-lg); }
+    .home-guestbook .cm-text { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
     .live-count { font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: var(--muted); margin-top: 0.4rem; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
     @media (max-width: 1100px) { .scroll-hint { display: none; } }
     .hero-tag {
@@ -183,6 +186,14 @@
     <a href="prochaines-courses.html" class="next-race" id="nextRace"></a>
   </section>
 
+  <section class="section">
+    <div class="section-head">
+      <div><div class="page-eyebrow">💬 Livre d'or</div><h2 class="section-title">Ils ont laissé un mot</h2></div>
+      <a href="livre-dor.html" class="btn btn-primary">✍️ Laisser un message</a>
+    </div>
+    <div class="cm-list home-guestbook" id="homeGuestbook"></div>
+  </section>
+
   <div class="quote-block">
     <div class="quote-text">« Les jambes se fatiguent, mais c'est la tête qui abandonne en premier. »</div>
     <div class="quote-author">— Devise du trailer</div>
@@ -206,7 +217,7 @@
     const [{ data: p }, { data: s }, { data: past }, { data: next }] = await Promise.all([
       sb.from('profiles').select('hero_title, bio, photo_url').eq('role', 'admin').limit(1).maybeSingle(),
       sb.from('stats').select('*').order('id').limit(1).maybeSingle(),
-      sb.from('races').select('distance, dplus').eq('type', 'past'),
+      sb.from('races').select('distance, dplus, dnf').eq('type', 'past'),
       sb.from('races').select('*').eq('type', 'upcoming').gte('date', new Date().toISOString().slice(0, 10)).order('date').limit(1),
     ]);
 
@@ -243,6 +254,15 @@
       document.getElementById('nextSection').style.display = '';
       startLiveCount(parseDate(r.date));
     }
+  }
+
+  async function loadGuestbookPreview() {
+    const { data } = await sb.from('comments')
+      .select('id, message, created_at, user_id, profiles(full_name, role)')
+      .is('race_id', null).order('created_at', { ascending: false }).limit(3);
+    document.getElementById('homeGuestbook').innerHTML = data?.length
+      ? data.map(commentHTML).join('').replace(/<button class="cm-del"[^>]*>.*?<\/button>/g, '')
+      : '<div class="cm-empty">Aucun message pour l\'instant. Sois le premier à encourager Philou ! ✨</div>';
   }
 
   // Compte à rebours qui défile à la seconde
@@ -291,7 +311,7 @@
     magnetize('.hero-ctas .btn', 0.25);
   }
 
-  initPage({ onReady: loadHome });
+  initPage({ onReady: () => { loadHome(); loadGuestbookPreview(); } });
   setupHeroFX();
 </script>
 </body>

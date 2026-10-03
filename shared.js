@@ -42,16 +42,28 @@ function daysUntil(d) {
 }
 function fmtNum(n) { return Number(n || 0).toLocaleString('fr-FR'); }
 
-// Totaux affichés : valeurs saisies dans le dashboard, sinon calculées depuis les courses terminées
+// Totaux = historique « avant le site » (dashboard) + courses terminées enregistrées.
+// Les abandons (dnf) comptent comme départs, pas dans les km / D+.
 function computeTotals(stats, pastRaces = []) {
-  const fin = stats?.total_races || pastRaces.length;
-  const dnf = stats?.total_dnf || 0;
+  const done = pastRaces.filter(r => !r.dnf);
+  const sum = k => done.reduce((a, r) => a + (+r[k] || 0), 0);
+  const fin = (stats?.races_before || 0) + done.length;
+  const dnf = (stats?.dnf_before || 0) + (pastRaces.length - done.length);
   return {
     fin, dnf, total: fin + dnf,
-    km: stats?.total_km || Math.round(pastRaces.reduce((a, r) => a + (+r.distance || 0), 0)),
-    dplus: stats?.total_dplus || pastRaces.reduce((a, r) => a + (+r.dplus || 0), 0),
-    years: stats?.years_running || 0,
+    km: (stats?.km_before || 0) + Math.round(sum('distance')),
+    dplus: (stats?.dplus_before || 0) + sum('dplus'),
+    years: stats?.start_year ? Math.max(0, new Date().getFullYear() - stats.start_year) : 0,
   };
+}
+
+function fmtRelative(d) {
+  const s = (new Date(d) - Date.now()) / 1000;
+  const rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' });
+  for (const [unit, sec] of [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]) {
+    if (Math.abs(s) >= sec) return rtf.format(Math.round(s / sec), unit);
+  }
+  return 'à l\'instant';
 }
 
 const RACE_TYPES = { trail: 'Trail', ultra: 'Ultra', sky: 'Skyrace', route: 'Route' };
@@ -82,7 +94,26 @@ async function uploadFile(file, bucket, folder) {
   if (error) throw error;
   return sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }
-const uploadImage = (file, folder) => uploadFile(file, 'images', folder);
+// Redimensionne (2000 px max) et compresse une photo dans le navigateur avant l'envoi.
+// En cas de souci (format non lu, ex. HEIC hors Safari), on envoie l'original.
+async function compressImage(file, maxSide = 2000, quality = 0.82) {
+  if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type) || file.size < 250 * 1024) return file;
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    bmp.close?.();
+    const toBlob = type => new Promise(r => c.toBlob(r, type, quality));
+    let blob = await toBlob('image/webp');
+    if (blob?.type !== 'image/webp') blob = await toBlob('image/jpeg');   // Safari n'encode pas le WebP
+    if (!blob || blob.size >= file.size) return file;
+    const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.' + ext, { type: blob.type });
+  } catch { return file; }
+}
+const uploadImage = async (file, folder) => uploadFile(await compressImage(file), 'images', folder);
 const uploadVideo = (file, folder) => uploadFile(file, 'videos', folder);
 
 // ─── SESSION ───
@@ -96,6 +127,12 @@ async function loadSession() {
   if (currentUser) {
     const { data } = await sb.from('profiles').select('id, full_name, role').eq('id', currentUser.id).maybeSingle();
     currentProfile = data;
+    if (!data) {
+      // filet de sécurité : profil manquant (nécessaire pour commenter)
+      const full_name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+      const { data: created } = await sb.from('profiles').insert({ id: currentUser.id, full_name, role: 'user' }).select('id, full_name, role').maybeSingle();
+      currentProfile = created;
+    }
   }
   return currentUser;
 }
@@ -112,6 +149,8 @@ const NAV = [
   { page: 'past', href: 'courses-terminees.html', icon: '🏆', label: 'Courses terminées' },
   { page: 'upcoming', href: 'prochaines-courses.html', icon: '🗓️', label: 'Prochaines courses' },
   { page: 'gear', href: 'materiel.html', icon: '🎒', label: 'Mon matériel' },
+  { section: 'Communauté' },
+  { page: 'guestbook', href: 'livre-dor.html', icon: '💬', label: 'Livre d\'or' },
 ];
 
 function renderShell() {
@@ -260,6 +299,7 @@ async function afterLogin() {
   renderUserUI();
   toast(`Salut ${displayName()} 👋`);
   if (onAuthed) { const cb = onAuthed; onAuthed = null; cb(currentUser); }
+  document.dispatchEvent(new Event('authchange'));
 }
 
 async function onLogin(e) {
@@ -417,6 +457,82 @@ function mediaSections(race) {
   if (vids.length) html += `<div class="drawer-section"><div class="drawer-section-title">🎬 Vidéos (${vids.length})</div>
     <div class="video-list">${vids.map(v => `<div class="video-item"><video src="${esc(v)}" controls preload="metadata" playsinline></video></div>`).join('')}</div></div>`;
   return html;
+}
+
+// ═══════════════════════════════════════
+// LIVRE D'OR & COMMENTAIRES
+// raceId null = livre d'or ; sinon commentaires d'une course
+// ═══════════════════════════════════════
+async function mountComments(el, { raceId = null, placeholder = 'Écris ton message…', limit = 100 } = {}) {
+  const query = sb.from('comments')
+    .select('id, message, created_at, user_id, profiles(full_name, role)')
+    .order('created_at', { ascending: false }).limit(limit);
+  const { data, error } = await (raceId ? query.eq('race_id', raceId) : query.is('race_id', null));
+  const list = data || [];
+
+  const form = currentUser
+    ? `<form class="cm-form">
+         <div class="user-avatar">${esc(displayName().charAt(0).toUpperCase())}</div>
+         <div class="cm-field">
+           <textarea class="form-textarea" maxlength="1000" rows="2" placeholder="${esc(placeholder)}" required></textarea>
+           <div class="cm-actions"><span class="cm-count">0 / 1000</span><button class="btn btn-primary btn-sm" type="submit">Publier</button></div>
+         </div>
+       </form>`
+    : `<div class="cm-login"><span>💬 Connecte-toi pour laisser un message.</span><button class="btn btn-primary btn-sm" type="button">Se connecter</button></div>`;
+
+  el.innerHTML = `${form}
+    <div class="cm-list">${error ? '<div class="cm-empty">Impossible de charger les messages.</div>'
+      : list.length ? list.map(commentHTML).join('')
+      : '<div class="cm-empty">Aucun message pour l\'instant. Sois le premier ! ✨</div>'}</div>`;
+
+  el.querySelector('.cm-login button')?.addEventListener('click', () => {
+    onAuthed = () => mountComments(el, { raceId, placeholder, limit });
+    openAuth();
+  });
+
+  const f = el.querySelector('.cm-form');
+  if (f) {
+    const ta = f.querySelector('textarea'), count = f.querySelector('.cm-count');
+    ta.addEventListener('input', () => count.textContent = `${ta.value.length} / 1000`);
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) f.requestSubmit(); });
+    f.addEventListener('submit', async e => {
+      e.preventDefault();
+      const message = ta.value.trim();
+      if (!message) return;
+      const btn = f.querySelector('button');
+      busy(btn, true, 'Envoi…');
+      const { error } = await sb.from('comments').insert({ message, race_id: raceId });
+      busy(btn, false);
+      if (error) return toast(error.message.includes('Trop de messages') ? 'Doucement ! Attends une minute avant de reposter.' : 'Erreur : ' + error.message, 'error');
+      toast('Message publié ✅');
+      mountComments(el, { raceId, placeholder, limit });
+    });
+  }
+
+  el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('Supprimer ce message ?')) return;
+    const { error } = await sb.from('comments').delete().eq('id', b.dataset.del);
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    b.closest('.cm-item').remove();
+    toast('Message supprimé');
+  }));
+}
+
+function commentHTML(c) {
+  const name = c.profiles?.full_name || 'Membre';
+  const canDelete = currentUser && (c.user_id === currentUser.id || isAdmin());
+  return `<div class="cm-item">
+    <div class="user-avatar">${esc(name.charAt(0).toUpperCase())}</div>
+    <div class="cm-body">
+      <div class="cm-head">
+        <strong>${esc(name)}</strong>
+        ${c.profiles?.role === 'admin' ? '<span class="badge badge-orange">Philou</span>' : ''}
+        <span class="cm-date" title="${esc(new Date(c.created_at).toLocaleString('fr-FR'))}">${fmtRelative(c.created_at)}</span>
+        ${canDelete ? `<button class="cm-del" data-del="${c.id}" title="Supprimer" aria-label="Supprimer">🗑️</button>` : ''}
+      </div>
+      <div class="cm-text">${esc(c.message)}</div>
+    </div>
+  </div>`;
 }
 
 // ═══════════════════════════════════════

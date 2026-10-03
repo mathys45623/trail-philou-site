@@ -116,19 +116,19 @@
   async function loadPage() {
     const [{ data: s }, { data: races }] = await Promise.all([
       sb.from('stats').select('*').limit(1).maybeSingle(),
-      sb.from('races').select('name, date, distance, dplus, rank').eq('type', 'past'),
+      sb.from('races').select('name, date, distance, dplus, rank, dnf').eq('type', 'past'),
     ]);
     const list = races || [];
 
-    // Totaux saisis dans le dashboard ; à défaut, calculés depuis les courses détaillées
-    const { fin, dnf, km, dplus } = computeTotals(s, list);
+    // Historique saisi dans le dashboard + courses enregistrées
+    const { fin, dnf, km, dplus, years: yrs } = computeTotals(s, list);
     const $ = id => document.getElementById(id);
     countUp($('stRaces'), fin);
     countUp($('stDnf'), dnf);
     countUp($('stTotal'), fin + dnf);
     countUp($('stKm'), km);
     countUp($('stDplus'), dplus);
-    countUp($('stYears'), s?.years_running || 0, '<small>ans</small>');
+    countUp($('stYears'), yrs, '<small>ans</small>');
 
     const pct = fin + dnf ? Math.round(fin / (fin + dnf) * 100) : 0;
     set('ringPct', fin + dnf ? pct + '%' : '—');
@@ -145,7 +145,9 @@
     list.forEach(r => {
       const y = parseDate(r.date).getFullYear();
       byYear[y] = byYear[y] || { n: 0, km: 0 };
-      byYear[y].n++; byYear[y].km += +r.distance || 0;
+      byYear[y].n++;
+      if (r.dnf) return;   // les abandons ne comptent ni dans les km ni dans les records
+      byYear[y].km += +r.distance || 0;
       if (+r.distance && (!longest || +r.distance > +longest.distance)) longest = r;
       if (+r.dplus && (!highest || +r.dplus > +highest.dplus)) highest = r;
       const pos = parseInt(String(r.rank || '').replace(/\D+.*$/, ''), 10);

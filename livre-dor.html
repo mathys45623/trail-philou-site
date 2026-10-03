@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Livre d'or — Trail Philou</title>
+  <meta name="description" content="Laisse un mot d'encouragement à Philou." />
+  <meta name="theme-color" content="#07090d" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .guestbook { max-width: 760px; }
+    .guestbook .cm-form { background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r-lg); padding: 1.2rem; }
+    .guestbook .cm-item { padding: 1.15rem 1.25rem; }
+  </style>
+</head>
+<body data-page="guestbook">
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-eyebrow">💬 Communauté</div>
+    <h1 class="page-title">Livre d'or</h1>
+    <p class="page-sub">Un mot d'encouragement avant une course, un souvenir de sentier partagé, une question sur le matériel ? Laisse ton message, Philou lit tout.</p>
+  </div>
+  <div class="page-content">
+    <div class="guestbook" id="guestbook"><div class="skeleton" style="min-height:120px"></div></div>
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+  const mount = () => mountComments(document.getElementById('guestbook'), { placeholder: 'Laisse un mot à Philou…' });
+  document.addEventListener('authchange', mount);
+  initPage({ onReady: mount });
+</script>
+</body>
+</html>

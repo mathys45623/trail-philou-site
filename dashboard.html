@@ -29,6 +29,8 @@
     .gate p { color: var(--muted); margin-bottom: 1.5rem; }
     .hint-box { background: var(--accent-soft); border: 1px solid rgba(255,106,43,0.25); border-radius: var(--r-md); padding: 0.85rem 1rem; font-size: 0.84rem; color: var(--muted); line-height: 1.55; margin-bottom: 1.25rem; }
     .hint-box b { color: var(--accent-2); }
+    .check-row { flex-direction: row; align-items: flex-start; gap: 0.6rem; cursor: pointer; font-size: 0.84rem; color: var(--muted); padding: 0.75rem 0.9rem; background: var(--bg-2); border: 1px solid var(--border-2); border-radius: var(--r-sm); }
+    .check-row input { accent-color: var(--accent); width: 17px; height: 17px; margin-top: 1px; flex-shrink: 0; }
     .modal-section { grid-column: 1 / -1; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--dim); margin-top: 0.6rem; padding-top: 1rem; border-top: 1px solid var(--border); }
   </style>
 </head>
@@ -47,6 +49,7 @@
       <button class="chip" data-panel="past">🏆 Courses terminées</button>
       <button class="chip" data-panel="upcoming">🗓️ Prochaines courses</button>
       <button class="chip" data-panel="materiel">🎒 Matériel</button>
+      <button class="chip" data-panel="messages">💬 Messages</button>
     </div>
 
     <!-- ── ACCUEIL ── -->
@@ -70,7 +73,7 @@
                 <img id="pfPhotoPreview" class="preview-photo" alt="" style="display:none" />
                 <div>
                   <input type="file" id="pfPhotoFile" accept="image/*" />
-                  <div class="form-hint" style="margin-top:0.4rem">JPG, PNG ou WebP · 10 Mo max</div>
+                  <div class="form-hint" style="margin-top:0.4rem">JPG, PNG ou WebP · compressée automatiquement</div>
                 </div>
               </div>
             </div>
@@ -85,15 +88,18 @@
       <div class="card">
         <div class="card-header"><div class="card-title">Statistiques affichées sur le site</div></div>
         <div class="card-body">
-          <div class="hint-box">Ces totaux couvrent <b>toute ta carrière</b> (pas seulement les courses détaillées). Laisse un champ à 0 pour qu'il soit calculé automatiquement à partir de tes courses terminées.</div>
+          <div class="hint-box">Les statistiques se calculent <b>automatiquement</b> à partir de tes courses terminées. Indique seulement ici ton <b>historique d'avant le site</b> (les courses que tu ne veux pas saisir une par une) : il s'ajoute aux courses enregistrées.</div>
           <div class="form-grid">
+            <div class="modal-section" style="margin-top:0;padding-top:0;border:none">Historique avant le site</div>
             <div class="form-group"><label class="form-label" for="stRaces">Courses finies</label><input class="form-input" type="number" min="0" id="stRaces" /></div>
             <div class="form-group"><label class="form-label" for="stDnf">Abandons (DNF)</label><input class="form-input" type="number" min="0" id="stDnf" /></div>
-            <div class="form-group"><label class="form-label" for="stKm">Kilomètres en course</label><input class="form-input" type="number" min="0" id="stKm" /></div>
+            <div class="form-group"><label class="form-label" for="stKm">Kilomètres</label><input class="form-input" type="number" min="0" id="stKm" /></div>
             <div class="form-group"><label class="form-label" for="stDplus">Mètres de D+</label><input class="form-input" type="number" min="0" id="stDplus" /></div>
-            <div class="form-group"><label class="form-label" for="stYears">Années de pratique</label><input class="form-input" type="number" min="0" id="stYears" /></div>
-            <div class="form-group"><label class="form-label" for="stTotal">Départs au total</label><input class="form-input" type="number" id="stTotal" readonly placeholder="Calculé automatiquement" /></div>
+            <div class="modal-section">Ancienneté</div>
+            <div class="form-group"><label class="form-label" for="stStart">Année de début du trail</label><input class="form-input" type="number" min="1950" max="2100" id="stStart" placeholder="ex : 2016" /></div>
           </div>
+          <div class="modal-section" style="margin-top:1.4rem">Aperçu de ce qui s'affiche sur le site</div>
+          <div class="kpi-grid" id="statsPreview" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:.8rem"></div>
           <div class="save-bar"><button class="btn btn-primary" id="btnSaveStats">💾 Enregistrer</button></div>
         </div>
       </div>
@@ -140,6 +146,17 @@
         </div>
       </div>
     </section>
+
+    <!-- ── MESSAGES ── -->
+    <section class="panel" id="panel-messages">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Derniers messages (livre d'or et commentaires)</div></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Auteur</th><th>Message</th><th>Où</th><th>Date</th><th></th></tr></thead>
+          <tbody id="msgTable"><tr><td colspan="5" class="td-empty">Chargement…</td></tr></tbody></table>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="page-content" id="gate" style="display:none">
@@ -170,6 +187,7 @@
       </div>
       <div class="form-group past-field"><label class="form-label" for="rTime">Temps</label><input class="form-input" id="rTime" placeholder="12h34'56" /></div>
       <div class="form-group past-field"><label class="form-label" for="rRank">Classement</label><input class="form-input" id="rRank" placeholder="23ème / 450" /></div>
+      <label class="form-group full past-field check-row" for="rDnf"><input type="checkbox" id="rDnf" /> <span>🚩 Abandon (DNF) — la course compte comme départ, mais pas dans les km, le D+ ni les records</span></label>
       <div class="form-group full"><label class="form-label" for="rNotes">Notes / récit</label><textarea class="form-textarea" id="rNotes" rows="3"></textarea></div>
 
       <div class="modal-section">Médias</div>
@@ -181,6 +199,7 @@
       <div class="form-group full">
         <label class="form-label" for="rImgFiles">📸 Ajouter des photos</label>
         <input type="file" id="rImgFiles" accept="image/*" multiple />
+        <div class="form-hint">Les photos sont redimensionnées et compressées automatiquement avant l'envoi.</div>
       </div>
       <div class="form-group full">
         <label class="form-label" for="rVidFiles">🎬 Ajouter des vidéos</label>
@@ -231,7 +250,7 @@
 <script src="shared.js"></script>
 <script>
   const $ = id => document.getElementById(id);
-  const MAX_IMG = 10 * 1024 * 1024, MAX_VID = 50 * 1024 * 1024;
+  const MAX_IMG = 30 * 1024 * 1024, MAX_VID = 50 * 1024 * 1024;
   let currentPanel = 'accueil';
   let raceCache = {};
 
@@ -250,7 +269,7 @@
     history.replaceState(null, '', '#' + id);
     document.querySelectorAll('#tabs .chip').forEach(b => b.classList.toggle('active', b.dataset.panel === id));
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + id));
-    ({ accueil: loadAccueil, stats: loadStats, past: loadPastTable, upcoming: loadUpcomingTable, materiel: loadMatTable })[id]();
+    ({ accueil: loadAccueil, stats: loadStats, past: loadPastTable, upcoming: loadUpcomingTable, materiel: loadMatTable, messages: loadMessages })[id]();
   }
 
   // ─── MODALS ───
@@ -309,24 +328,34 @@
   });
 
   // ─── STATS ───
-  let statsId = null;
-  const updateTotal = () => $('stTotal').value = (+$('stRaces').value || 0) + (+$('stDnf').value || 0);
-  $('stRaces').addEventListener('input', updateTotal);
-  $('stDnf').addEventListener('input', updateTotal);
+  let statsId = null, statsRaces = [];
+  const n = id => Math.max(0, parseInt($(id).value, 10) || 0);
+  const statsForm = () => ({ races_before: n('stRaces'), dnf_before: n('stDnf'), km_before: n('stKm'), dplus_before: n('stDplus'), start_year: n('stStart') || null });
+  function updatePreview() {
+    const t = computeTotals(statsForm(), statsRaces);
+    $('statsPreview').innerHTML = [
+      ['Courses finies', t.fin], ['Abandons', t.dnf], ['Départs', t.total],
+      ['Kilomètres', t.km], ['Mètres D+', t.dplus], ['Années', t.years],
+    ].map(([l, v]) => `<div class="kpi"><div class="kpi-val">${fmtNum(v)}</div><div class="kpi-lbl">${l}</div></div>`).join('');
+  }
+  ['stRaces', 'stDnf', 'stKm', 'stDplus', 'stStart'].forEach(id => $(id).addEventListener('input', updatePreview));
   async function loadStats() {
-    const { data: s } = await sb.from('stats').select('*').order('id').limit(1).maybeSingle();
+    const [{ data: s }, { data: races }] = await Promise.all([
+      sb.from('stats').select('*').order('id').limit(1).maybeSingle(),
+      sb.from('races').select('distance, dplus, dnf').eq('type', 'past'),
+    ]);
     statsId = s?.id || null;
-    $('stRaces').value = s?.total_races ?? 0;
-    $('stDnf').value = s?.total_dnf ?? 0;
-    $('stKm').value = s?.total_km ?? 0;
-    $('stDplus').value = s?.total_dplus ?? 0;
-    $('stYears').value = s?.years_running ?? 0;
-    updateTotal();
+    statsRaces = races || [];
+    $('stRaces').value = s?.races_before ?? 0;
+    $('stDnf').value = s?.dnf_before ?? 0;
+    $('stKm').value = s?.km_before ?? 0;
+    $('stDplus').value = s?.dplus_before ?? 0;
+    $('stStart').value = s?.start_year ?? '';
+    updatePreview();
   }
   $('btnSaveStats').addEventListener('click', async () => {
     const btn = $('btnSaveStats');
-    const n = id => Math.max(0, parseInt($(id).value, 10) || 0);
-    const payload = { total_races: n('stRaces'), total_dnf: n('stDnf'), total_km: n('stKm'), total_dplus: n('stDplus'), years_running: n('stYears'), updated_at: new Date().toISOString() };
+    const payload = { ...statsForm(), updated_at: new Date().toISOString() };
     busy(btn, true, 'Enregistrement…');
     const { data, error } = statsId
       ? await sb.from('stats').update(payload).eq('id', statsId).select('id').single()
@@ -358,7 +387,7 @@
         <td style="width:60px">${thumb(r)}</td>
         <td><strong>${esc(r.name)}</strong><div style="font-size:.78rem;color:var(--dim)">${esc(r.location || '')}</div></td>
         <td style="white-space:nowrap">${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-        <td>${esc(r.finish_time || '—')}</td>
+        <td>${r.dnf ? '<span class="badge badge-dnf">🚩 Abandon</span>' : esc(r.finish_time || '—')}</td>
         <td>${esc(r.rank || '—')}</td>
         <td style="white-space:nowrap">${ni ? `🖼️ ${ni}` : ''} ${nv ? `🎬 ${nv}` : ''}${!ni && !nv ? '—' : ''}</td>
         ${actions('past', r)}
@@ -407,6 +436,7 @@
     $('rTime').value = r?.finish_time || '';
     $('rRank').value = r?.rank || '';
     $('rNotes').value = r?.notes || '';
+    $('rDnf').checked = !!r?.dnf;
     ['rImgFile', 'rImgFiles', 'rVidFiles'].forEach(i => $(i).value = '');
     renderMediaManager();
     openModal('raceModal');
@@ -458,7 +488,7 @@
         updated_at: new Date().toISOString(),
       };
       if (kind === 'upcoming') payload.status = $('rStatus').value;
-      else { payload.finish_time = $('rTime').value.trim() || null; payload.rank = $('rRank').value.trim() || null; }
+      else { payload.finish_time = $('rTime').value.trim() || null; payload.rank = $('rRank').value.trim() || null; payload.dnf = $('rDnf').checked; }
 
       btn.textContent = 'Enregistrement…';
       const { error } = id ? await sb.from('races').update(payload).eq('id', id) : await sb.from('races').insert(payload);
@@ -485,6 +515,29 @@
     if (r) removeStorageFiles([r.image_url, ...toArr(r.images), ...toArr(r.videos)]);
     toast('Course supprimée ✅');
     loadPanel(currentPanel);
+  }
+
+  // ─── MESSAGES ───
+  async function loadMessages() {
+    const { data, error } = await sb.from('comments')
+      .select('id, message, created_at, race_id, profiles(full_name), races(name)')
+      .order('created_at', { ascending: false }).limit(200);
+    if (error) toast('Erreur : ' + error.message, 'error');
+    const rows = data || [];
+    $('msgTable').innerHTML = rows.length ? rows.map(c => `<tr>
+      <td><strong>${esc(c.profiles?.full_name || 'Membre')}</strong></td>
+      <td style="max-width:420px;white-space:pre-line">${esc(c.message)}</td>
+      <td>${c.race_id ? `<span class="badge badge-blue">${esc(c.races?.name || 'Course')}</span>` : '<span class="badge badge-orange">Livre d’or</span>'}</td>
+      <td style="white-space:nowrap" title="${esc(new Date(c.created_at).toLocaleString('fr-FR'))}">${fmtRelative(c.created_at)}</td>
+      <td class="td-actions"><button class="btn btn-danger btn-sm btn-icon" title="Supprimer" onclick="deleteMessage('${c.id}')">🗑️</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="td-empty">Aucun message pour l’instant.</td></tr>';
+  }
+  async function deleteMessage(id) {
+    if (!confirm('Supprimer ce message ?')) return;
+    const { error } = await sb.from('comments').delete().eq('id', id);
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Message supprimé');
+    loadMessages();
   }
 
   // ─── MATÉRIEL ───

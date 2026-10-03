@@ -161,3 +161,45 @@ CREATE POLICY media_admin_delete ON storage.objects FOR DELETE TO authenticated
 -- Donner le rôle admin (à lancer ici, dans le SQL Editor uniquement)
 -- ============================================================
 -- UPDATE profiles SET role = 'admin' WHERE id = '<uuid de l''utilisateur>';
+
+-- ============================================================
+-- v4 : STATS AUTOMATIQUES + LIVRE D'OR / COMMENTAIRES
+-- ============================================================
+-- Historique « avant le site » ; le reste est calculé depuis les courses
+ALTER TABLE stats ADD COLUMN IF NOT EXISTS races_before INTEGER DEFAULT 0;
+ALTER TABLE stats ADD COLUMN IF NOT EXISTS dnf_before INTEGER DEFAULT 0;
+ALTER TABLE stats ADD COLUMN IF NOT EXISTS km_before INTEGER DEFAULT 0;
+ALTER TABLE stats ADD COLUMN IF NOT EXISTS dplus_before INTEGER DEFAULT 0;
+ALTER TABLE stats ADD COLUMN IF NOT EXISTS start_year INTEGER;
+ALTER TABLE races ADD COLUMN IF NOT EXISTS dnf BOOLEAN NOT NULL DEFAULT false;
+
+-- race_id NULL = message du livre d'or ; sinon commentaire sur une course
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL DEFAULT auth.uid() REFERENCES profiles(id) ON DELETE CASCADE,
+  race_id UUID REFERENCES races(id) ON DELETE CASCADE,
+  message TEXT NOT NULL CHECK (char_length(btrim(message)) BETWEEN 1 AND 1000),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS comments_race_idx ON comments (race_id, created_at DESC);
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS comments_read ON comments;
+DROP POLICY IF EXISTS comments_insert_own ON comments;
+DROP POLICY IF EXISTS comments_delete_own_or_admin ON comments;
+CREATE POLICY comments_read ON comments FOR SELECT USING (true);
+CREATE POLICY comments_insert_own ON comments FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+CREATE POLICY comments_delete_own_or_admin ON comments FOR DELETE TO authenticated USING (user_id = auth.uid() OR public.is_admin());
+
+-- Anti-spam : 5 messages max par minute et par membre
+CREATE OR REPLACE FUNCTION public.comments_rate_limit()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF (SELECT count(*) FROM public.comments WHERE user_id = NEW.user_id AND created_at > NOW() - INTERVAL '1 minute') >= 5 THEN
+    RAISE EXCEPTION 'Trop de messages, attends une minute.';
+  END IF;
+  NEW.message := btrim(NEW.message);
+  RETURN NEW;
+END $$;
+REVOKE EXECUTE ON FUNCTION public.comments_rate_limit() FROM public, anon, authenticated;
+DROP TRIGGER IF EXISTS comments_rate_limit ON comments;
+CREATE TRIGGER comments_rate_limit BEFORE INSERT ON comments FOR EACH ROW EXECUTE FUNCTION public.comments_rate_limit();
