@@ -59,7 +59,7 @@
     const st = STATUS[r.status] || STATUS.objectif;
     const done = daysUntil(r.date) < 0;
     return `
-    <button class="race-card${done ? ' is-done' : ''}" style="animation-delay:${i * 50}ms" onclick="showRace('${r.id}')">
+    <button class="race-card${done ? ' is-done' : ''}" onclick="showRace('${r.id}')">
       <div class="race-card-media">
         ${r.image_url ? `<img src="${esc(r.image_url)}" alt="" loading="lazy" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}
         <div class="media-top">

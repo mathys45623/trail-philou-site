@@ -61,7 +61,7 @@
       return;
     }
     el.innerHTML = list.map((item, i) => `
-      <article class="mat-card" style="animation-delay:${i * 40}ms">
+      <article class="mat-card">
         <div class="mat-card-img">
           ${item.image_url ? `<img src="${esc(item.image_url)}" alt="${esc(item.nom)}" loading="lazy" />` : `<div class="no-img">${CAT_EMOJI[item.categorie] || '📦'}</div>`}
         </div>

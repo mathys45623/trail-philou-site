@@ -13,7 +13,7 @@
     .stat {
       position: relative; overflow: hidden;
       background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
-      padding: 1.5rem 1.6rem; animation: slideUp 0.4s ease both;
+      padding: 1.5rem 1.6rem;
     }
     .stat .s-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; background: var(--surface-2); border: 1px solid var(--border); margin-bottom: 1.1rem; }
     .stat .s-val { font-family: var(--font-display); font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
@@ -62,11 +62,11 @@
   <div class="page-content">
     <div class="stat-grid">
       <div class="stat hl"><div class="s-icon">🏅</div><div class="s-val" id="stRaces">—</div><div class="s-lbl">Courses finies</div></div>
-      <div class="stat" style="animation-delay:50ms"><div class="s-icon">🛣️</div><div class="s-val" id="stKm">—</div><div class="s-lbl">Kilomètres en course</div></div>
-      <div class="stat" style="animation-delay:100ms"><div class="s-icon">⛰️</div><div class="s-val" id="stDplus">—</div><div class="s-lbl">Mètres de D+</div></div>
-      <div class="stat" style="animation-delay:150ms"><div class="s-icon">🏁</div><div class="s-val" id="stTotal">—</div><div class="s-lbl">Départs au total</div></div>
-      <div class="stat" style="animation-delay:200ms"><div class="s-icon">🚩</div><div class="s-val" id="stDnf">—</div><div class="s-lbl">Abandons (DNF)</div></div>
-      <div class="stat" style="animation-delay:250ms"><div class="s-icon">🗓️</div><div class="s-val" id="stYears">—</div><div class="s-lbl">Années de pratique</div></div>
+      <div class="stat"><div class="s-icon">🛣️</div><div class="s-val" id="stKm">—</div><div class="s-lbl">Kilomètres en course</div></div>
+      <div class="stat"><div class="s-icon">⛰️</div><div class="s-val" id="stDplus">—</div><div class="s-lbl">Mètres de D+</div></div>
+      <div class="stat"><div class="s-icon">🏁</div><div class="s-val" id="stTotal">—</div><div class="s-lbl">Départs au total</div></div>
+      <div class="stat"><div class="s-icon">🚩</div><div class="s-val" id="stDnf">—</div><div class="s-lbl">Abandons (DNF)</div></div>
+      <div class="stat"><div class="s-icon">🗓️</div><div class="s-val" id="stYears">—</div><div class="s-lbl">Années de pratique</div></div>
     </div>
 
     <div class="two-col">
@@ -121,16 +121,14 @@
     const list = races || [];
 
     // Totaux saisis dans le dashboard ; à défaut, calculés depuis les courses détaillées
-    const fin = s?.total_races || list.length;
-    const dnf = s?.total_dnf || 0;
-    const km = s?.total_km || Math.round(list.reduce((a, r) => a + (+r.distance || 0), 0));
-    const dplus = s?.total_dplus || list.reduce((a, r) => a + (+r.dplus || 0), 0);
-    set('stRaces', fmtNum(fin));
-    set('stDnf', fmtNum(dnf));
-    set('stTotal', fmtNum(fin + dnf));
-    set('stKm', fmtNum(km));
-    set('stDplus', fmtNum(dplus));
-    document.getElementById('stYears').innerHTML = `${fmtNum(s?.years_running || 0)}<small>ans</small>`;
+    const { fin, dnf, km, dplus } = computeTotals(s, list);
+    const $ = id => document.getElementById(id);
+    countUp($('stRaces'), fin);
+    countUp($('stDnf'), dnf);
+    countUp($('stTotal'), fin + dnf);
+    countUp($('stKm'), km);
+    countUp($('stDplus'), dplus);
+    countUp($('stYears'), s?.years_running || 0, '<small>ans</small>');
 
     const pct = fin + dnf ? Math.round(fin / (fin + dnf) * 100) : 0;
     set('ringPct', fin + dnf ? pct + '%' : '—');

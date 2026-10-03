@@ -65,7 +65,7 @@
       const vids = toArr(r.videos);
       const cover = r.image_url || imgs[0];
       return `
-      <button class="race-card" style="animation-delay:${i * 50}ms" onclick="showRace('${r.id}')">
+      <button class="race-card" onclick="showRace('${r.id}')">
         <div class="race-card-media">
           ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}
           <div class="media-top">

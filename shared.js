@@ -42,6 +42,18 @@ function daysUntil(d) {
 }
 function fmtNum(n) { return Number(n || 0).toLocaleString('fr-FR'); }
 
+// Totaux affichés : valeurs saisies dans le dashboard, sinon calculées depuis les courses terminées
+function computeTotals(stats, pastRaces = []) {
+  const fin = stats?.total_races || pastRaces.length;
+  const dnf = stats?.total_dnf || 0;
+  return {
+    fin, dnf, total: fin + dnf,
+    km: stats?.total_km || Math.round(pastRaces.reduce((a, r) => a + (+r.distance || 0), 0)),
+    dplus: stats?.total_dplus || pastRaces.reduce((a, r) => a + (+r.dplus || 0), 0),
+    years: stats?.years_running || 0,
+  };
+}
+
 const RACE_TYPES = { trail: 'Trail', ultra: 'Ultra', sky: 'Skyrace', route: 'Route' };
 const STATUS = {
   objectif:  { label: '🎯 Objectif',  cls: 'status-objectif' },
@@ -49,7 +61,7 @@ const STATUS = {
   selection: { label: '⚡ Sélection', cls: 'status-selection' },
 };
 
-const MOUNTAIN_SVG = `<svg viewBox="0 0 64 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 38 L22 10 L32 22 L40 12 L62 38 Z" fill="#ffffff" fill-opacity=".12"/><path d="M2 38 L22 10 L32 22 L40 12 L62 38" stroke="#ff8a2b" stroke-width="2.5" stroke-linejoin="round"/><path d="M18 15.5 L22 10 L26 15 L23 14 L21 16 Z" fill="#fff" fill-opacity=".8"/><circle cx="50" cy="8" r="4" fill="#ffc23a"/></svg>`;
+const MOUNTAIN_SVG = `<svg viewBox="0 0 64 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 38 L22 10 L32 22 L40 12 L62 38 Z" fill="#ffffff" fill-opacity=".12"/><path class="draw-path" pathLength="1" d="M2 38 L22 10 L32 22 L40 12 L62 38" stroke="#ff8a2b" stroke-width="2.5" stroke-linejoin="round"/><path d="M18 15.5 L22 10 L26 15 L23 14 L21 16 Z" fill="#fff" fill-opacity=".8"/><circle class="sun" cx="50" cy="8" r="4" fill="#ffc23a"/></svg>`;
 const LOGO_SVG = `<svg viewBox="0 0 24 24" fill="none"><path d="M2 20 L9 8 L13 14 L16 10 L22 20 Z" fill="#1a0d05"/><circle cx="18" cy="5" r="2.2" fill="#1a0d05"/></svg>`;
 
 // Toast
@@ -318,6 +330,7 @@ sb.auth.onAuthStateChange(event => {
 // requireAuth: true → le contenu n'est chargé qu'après connexion.
 async function initPage({ requireAuth = false, onReady } = {}) {
   renderShell();
+  setupFX();
   await loadSession();
   renderUserUI();
   if (requireAuth && !currentUser) {
@@ -404,4 +417,159 @@ function mediaSections(race) {
   if (vids.length) html += `<div class="drawer-section"><div class="drawer-section-title">🎬 Vidéos (${vids.length})</div>
     <div class="video-list">${vids.map(v => `<div class="video-item"><video src="${esc(v)}" controls preload="metadata" playsinline></video></div>`).join('')}</div></div>`;
   return html;
+}
+
+// ═══════════════════════════════════════
+// EFFETS INTERACTIFS
+// ═══════════════════════════════════════
+const FX = {
+  reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
+  fine: matchMedia('(hover: hover) and (pointer: fine)').matches,
+};
+
+// Chiffre qui défile de 0 à sa valeur quand il devient visible
+function countUp(el, value, suffix = '') {
+  const n = Math.round(+value || 0);
+  if (FX.reduced || !n || !('IntersectionObserver' in window)) { el.innerHTML = fmtNum(n) + suffix; return; }
+  el.innerHTML = '0' + suffix;
+  const io = new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting) return;
+    io.disconnect();
+    const t0 = performance.now(), dur = 1500;
+    const step = t => {
+      const p = Math.min((t - t0) / dur, 1);
+      el.innerHTML = fmtNum(Math.round(n * (1 - Math.pow(1 - p, 4)))) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+  io.observe(el);
+}
+
+// Apparition des blocs au défilement (s'applique aussi au contenu chargé plus tard)
+const REVEAL_SEL = '.race-card, .mat-card, .stat, .strip-item, .card, .record, .next-race, .quote-block, .group-title, .section-head, .filters';
+function setupReveal() {
+  if (FX.reduced || !('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(entries => entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    el.classList.add('in');
+    io.unobserve(el);
+    // une fois apparu, on retire le délai pour que le survol reste instantané
+    setTimeout(() => el.style.transitionDelay = '', 1000);
+  }), { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+
+  const scan = root => root.querySelectorAll(REVEAL_SEL).forEach(el => {
+    if (el.dataset.rv || el.closest('.modal-overlay, .auth-overlay, .detail-drawer, .sidebar, .mobile-bar')) return;
+    el.dataset.rv = '1';
+    const sibs = [...el.parentElement.children].filter(c => c.matches(REVEAL_SEL));
+    el.style.transitionDelay = Math.min(sibs.indexOf(el), 8) * 70 + 'ms';
+    el.classList.add('reveal');
+    io.observe(el);
+  });
+  const root = document.querySelector('.main') || document.body;
+  scan(root);
+  new MutationObserver(muts => muts.forEach(m => m.addedNodes.forEach(n => {
+    if (n.nodeType === 1) scan(n.parentElement || root);
+  }))).observe(root, { childList: true, subtree: true });
+}
+
+// Projecteur + inclinaison 3D qui suivent la souris, halo « lampe frontale »
+const SPOT_SEL = '.race-card, .mat-card, .stat, .next-race, .kpi, .record, .strip-item';
+const TILT_SEL = '.race-card, .mat-card';
+function setupPointer() {
+  if (!FX.fine || FX.reduced) return;
+  const lamp = document.createElement('div');
+  lamp.className = 'headlamp';
+  document.body.appendChild(lamp);
+
+  let last = null, raf = 0, ev = null;
+  const reset = el => { el.style.removeProperty('--rx'); el.style.removeProperty('--ry'); };
+  document.addEventListener('pointermove', e => {
+    ev = e;
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      lamp.style.setProperty('--hx', ev.clientX + 'px');
+      lamp.style.setProperty('--hy', ev.clientY + 'px');
+      const el = ev.target.closest?.(SPOT_SEL);
+      if (last && last !== el) reset(last);
+      last = el;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const x = ev.clientX - r.left, y = ev.clientY - r.top;
+      el.style.setProperty('--mx', x + 'px');
+      el.style.setProperty('--my', y + 'px');
+      if (el.matches(TILT_SEL)) {
+        el.style.setProperty('--rx', ((0.5 - y / r.height) * 7).toFixed(2) + 'deg');
+        el.style.setProperty('--ry', ((x / r.width - 0.5) * 9).toFixed(2) + 'deg');
+      }
+    });
+  }, { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => { if (last) reset(last); last = null; });
+}
+
+// Onde au clic sur les boutons
+function setupRipple() {
+  if (FX.reduced) return;
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest('.btn, .chip, .btn-login-nav, .auth-tab');
+    if (!b || b.disabled) return;
+    const r = b.getBoundingClientRect(), size = Math.max(r.width, r.height);
+    const s = document.createElement('span');
+    s.className = 'ripple';
+    s.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - r.left - size / 2}px;top:${e.clientY - r.top - size / 2}px`;
+    b.appendChild(s);
+    setTimeout(() => s.remove(), 650);
+  });
+}
+
+// Boutons qui « attirent » le curseur
+function magnetize(selector, strength = 0.3) {
+  if (!FX.fine || FX.reduced) return;
+  document.querySelectorAll(selector).forEach(b => {
+    b.classList.add('magnetic');
+    b.addEventListener('pointermove', e => {
+      const r = b.getBoundingClientRect();
+      b.style.translate = `${(e.clientX - r.left - r.width / 2) * strength}px ${(e.clientY - r.top - r.height / 2) * strength}px`;
+    });
+    b.addEventListener('pointerleave', () => b.style.translate = '');
+  });
+}
+
+// Barre de progression de lecture
+function setupProgress() {
+  const bar = document.createElement('div');
+  bar.className = 'scroll-progress';
+  document.body.appendChild(bar);
+  const update = () => {
+    const h = document.documentElement.scrollHeight - innerHeight;
+    bar.style.setProperty('--p', h > 0 ? (scrollY / h).toFixed(4) : 0);
+  };
+  addEventListener('scroll', update, { passive: true });
+  addEventListener('resize', update);
+  update();
+}
+
+// Fondu en sortie quand on change de page
+function setupPageTransitions() {
+  if (FX.reduced) return;
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href]');
+    if (!a || a.target || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+    const url = new URL(a.href, location.href);
+    if (url.origin !== location.origin || url.pathname === location.pathname) return;
+    e.preventDefault();
+    document.body.classList.add('leaving');
+    setTimeout(() => location.href = url.href, 200);
+  });
+  addEventListener('pageshow', e => { if (e.persisted) document.body.classList.remove('leaving'); });
+}
+
+function setupFX() {
+  setupReveal();
+  setupPointer();
+  setupRipple();
+  setupProgress();
+  setupPageTransitions();
 }

@@ -203,6 +203,7 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
 .badge-blue   { background: var(--blue-soft); color: var(--blue); }
 .badge-violet { background: var(--violet-soft); color: var(--violet); }
 .badge-gray   { background: rgba(255,255,255,0.06); color: var(--muted); }
+.badge:empty { display: none; }
 
 /* ── FORMS ── */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.1rem; }
@@ -248,7 +249,7 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
   box-shadow: var(--shadow);
   animation: slideUp 0.25s ease;
 }
-@keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideUp { from { opacity:0; translate: 0 16px; } to { opacity:1; translate: 0 0; } }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 .modal-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; color: var(--text); margin-bottom: 1.5rem; letter-spacing: -0.02em; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
@@ -289,10 +290,10 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
   background: var(--surface); border-radius: var(--r-lg);
   border: 1px solid var(--border); overflow: hidden; cursor: pointer;
   transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
-  animation: slideUp 0.4s ease both;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--ty, 0px));
   text-align: left; color: inherit; font: inherit; padding: 0;
 }
-.race-card:hover { transform: translateY(-4px); border-color: rgba(255,106,43,0.45); box-shadow: 0 18px 50px rgba(0,0,0,0.5); }
+.race-card:hover { --ty: -6px; border-color: rgba(255,106,43,0.45); box-shadow: 0 18px 50px rgba(0,0,0,0.5); }
 .race-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .race-card-media { position: relative; aspect-ratio: 16/9; overflow: hidden; background: var(--surface-2); }
 .race-card-media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
@@ -408,8 +409,8 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
 }
 .chip:hover { color: var(--text); border-color: var(--accent); }
 .chip.active { background: var(--grad); color: #1a0d05; border-color: transparent; }
-.mat-card { background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.25s, border-color 0.25s; animation: slideUp 0.4s ease both; }
-.mat-card:hover { transform: translateY(-3px); border-color: var(--border-2); }
+.mat-card { background: var(--surface); border-radius: var(--r-lg); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--ty, 0px)); position: relative; }
+.mat-card:hover { --ty: -5px; box-shadow: 0 18px 50px rgba(0,0,0,0.45); border-color: var(--border-2); }
 .mat-card-img { aspect-ratio: 4/3; background: var(--surface-2); overflow: hidden; }
 .mat-card-img img { width: 100%; height: 100%; object-fit: cover; }
 .mat-card-img .no-img { display: grid; place-items: center; height: 100%; font-size: 3rem; background: radial-gradient(circle at 50% 30%, rgba(255,106,43,0.12), transparent 60%), var(--surface-2); }
@@ -456,6 +457,94 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
 /* ── TEXTE ── */
 .grad-text { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
+
+/* ═══════════════════════════════════════════
+   EFFETS INTERACTIFS
+   ═══════════════════════════════════════════ */
+
+/* Apparition au défilement */
+.reveal {
+  opacity: 0; translate: 0 28px;
+  transition: opacity 0.7s ease, translate 0.8s cubic-bezier(.2,.8,.2,1),
+              transform 0.25s, border-color 0.25s, box-shadow 0.25s, background 0.25s;
+}
+.reveal.in { opacity: 1; translate: 0 0; }
+
+/* Transition entre pages */
+.main { animation: pageIn 0.5s ease both; }
+@keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+body.leaving .main { opacity: 0; translate: 0 -8px; transition: opacity 0.22s ease, translate 0.22s ease; }
+
+/* Barre de progression de lecture */
+.scroll-progress {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 500;
+  background: var(--grad); transform-origin: 0 50%; transform: scaleX(var(--p, 0));
+  pointer-events: none; box-shadow: 0 0 12px rgba(255,106,43,0.6);
+}
+
+/* Lampe frontale : halo qui suit le curseur (visible entre les cartes) */
+.headlamp {
+  position: fixed; left: 0; top: 0; width: 640px; height: 640px; z-index: -1;
+  margin: -320px 0 0 -320px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,150,60,0.10) 0%, rgba(255,120,40,0.04) 35%, transparent 65%);
+  transform: translate(var(--hx, -999px), var(--hy, -999px));
+  transition: opacity 0.4s; will-change: transform;
+}
+
+/* Projecteur sur les cartes (suit la souris) */
+.race-card::before, .mat-card::before, .stat::before, .next-race::before, .kpi::before, .record::before, .strip-item::before, .card.spot::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+  background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(255,138,43,0.13), transparent 45%);
+  opacity: 0; transition: opacity 0.35s;
+}
+.race-card:hover::before, .mat-card:hover::before, .stat:hover::before, .next-race:hover::before, .kpi:hover::before, .record:hover::before, .strip-item:hover::before { opacity: 1; }
+.kpi, .record, .strip-item { position: relative; }
+.stat, .kpi, .record { transition: transform 0.25s, border-color 0.25s; }
+.stat:hover, .record:hover { border-color: rgba(255,106,43,0.3); }
+.stat .s-icon { transition: transform 0.4s cubic-bezier(.3,1.6,.5,1); }
+.stat:hover .s-icon { transform: scale(1.15) rotate(-8deg); }
+
+/* Onde au clic */
+.btn, .chip, .btn-login-nav, .auth-tab { position: relative; overflow: hidden; }
+.ripple {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: rgba(255,255,255,0.35); transform: scale(0); animation: ripple 0.6s ease-out forwards;
+}
+.btn-primary .ripple, .chip.active .ripple, .btn-login-nav .ripple { background: rgba(255,255,255,0.55); }
+@keyframes ripple { to { transform: scale(2.6); opacity: 0; } }
+
+/* Boutons aimantés */
+.magnetic { transition: translate 0.35s cubic-bezier(.2,.8,.2,1), transform 0.2s, box-shadow 0.2s; }
+
+/* Brillance qui traverse les boutons principaux */
+.btn-primary::after, .btn-login-nav::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-20deg); pointer-events: none;
+}
+.btn-primary:hover::after, .btn-login-nav:hover::after { left: 130%; transition: left 0.7s ease; }
+
+/* Tracé des montagnes qui se dessine */
+.draw-path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.8s 0.2s cubic-bezier(.6,0,.2,1) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.sun { transform-box: fill-box; transform-origin: center; animation: sunPulse 3.5s ease-in-out infinite; }
+@keyframes sunPulse { 50% { transform: scale(1.18); opacity: 0.8; } }
+
+/* Lien de menu : petit décalage au survol */
+.nav-link .ni { transition: transform 0.3s cubic-bezier(.3,1.6,.5,1); }
+.nav-link:hover .ni { transform: scale(1.2) rotate(-6deg); }
+
+/* Logo qui pivote au survol */
+.logo-mark { transition: transform 0.5s cubic-bezier(.3,1.6,.5,1); }
+.sidebar-logo:hover .logo-mark { transform: rotate(-10deg) scale(1.08); }
+
+/* Badge de statut "inscrit" qui pulse */
+.status-inscrit { position: relative; }
+.status-inscrit::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 0 rgba(52,211,153,0.5); animation: pulse 2.4s infinite; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
+
+@media (hover: none) { .headlamp { display: none; } }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   .page-header { padding: 2rem 1.5rem 1rem; }
@@ -494,4 +583,5 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  .draw-path { stroke-dashoffset: 0; }
 }

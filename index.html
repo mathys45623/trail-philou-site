@@ -18,7 +18,24 @@
     }
     .hero-ridge { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; pointer-events: none; z-index: 0; }
     .hero-ridge svg { width: 100%; height: 100%; display: block; }
-    .hero-inner { position: relative; z-index: 1; max-width: 620px; animation: slideUp 0.6s ease both; }
+    .hero-inner { position: relative; z-index: 1; max-width: 620px; }
+    .hero-inner > * { animation: slideUp 0.8s cubic-bezier(.2,.8,.2,1) both; }
+    .hero-inner > :nth-child(2) { animation-delay: 0.1s; }
+    .hero-inner > :nth-child(3) { animation-delay: 0.2s; }
+    .hero-inner > :nth-child(4) { animation-delay: 0.3s; }
+    .hero-ridge g { will-change: transform; transition: transform 0.2s linear; }
+    .hero-photo { transition: transform 0.3s cubic-bezier(.2,.8,.2,1); transform: rotate(2deg) rotateX(var(--prx, 0deg)) rotateY(var(--pry, 0deg)); }
+    .hero-visual:hover .hero-photo { transform: rotate(0deg) rotateX(var(--prx, 0deg)) rotateY(var(--pry, 0deg)) scale(1.02); }
+    .hero-visual { perspective: 1000px; }
+    .float-card { transition: translate 0.3s cubic-bezier(.2,.8,.2,1); animation: bob 5s ease-in-out infinite; }
+    .fc-2 { animation-delay: -2.5s; }
+    @keyframes bob { 50% { margin-top: -10px; } }
+    .scroll-hint { position: absolute; left: 50%; bottom: 5.5rem; z-index: 2; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: var(--dim); font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; text-decoration: none; }
+    .scroll-hint span { width: 22px; height: 34px; border: 2px solid var(--border-2); border-radius: 12px; position: relative; }
+    .scroll-hint span::after { content: ''; position: absolute; left: 50%; top: 6px; width: 4px; height: 7px; margin-left: -2px; border-radius: 2px; background: var(--accent); animation: wheel 1.8s ease-in-out infinite; }
+    @keyframes wheel { 0% { opacity: 0; translate: 0 0; } 30% { opacity: 1; } 100% { opacity: 0; translate: 0 10px; } }
+    .live-count { font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: var(--muted); margin-top: 0.4rem; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+    @media (max-width: 1100px) { .scroll-hint { display: none; } }
     .hero-tag {
       display: inline-flex; align-items: center; gap: 0.55rem;
       background: var(--surface); border: 1px solid var(--border-2);
@@ -125,9 +142,11 @@
           <linearGradient id="rg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2433"/><stop offset="1" stop-color="#07090d"/></linearGradient>
           <linearGradient id="rg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#121925"/><stop offset="1" stop-color="#07090d"/></linearGradient>
         </defs>
-        <path d="M0 260 L120 180 L210 230 L330 120 L430 210 L540 150 L650 240 L760 110 L880 200 L990 140 L1100 220 L1200 170 L1200 400 L0 400Z" fill="url(#rg1)" opacity=".7"/>
-        <path d="M0 320 L150 250 L260 300 L390 220 L520 290 L640 230 L780 310 L900 240 L1040 300 L1200 250 L1200 400 L0 400Z" fill="url(#rg2)"/>
-        <path d="M0 320 L150 250 L260 300 L390 220 L520 290 L640 230 L780 310 L900 240 L1040 300 L1200 250" fill="none" stroke="#ff7a2b" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="6 8"/>
+        <g id="ridgeBack"><path d="M-60 260 L120 180 L210 230 L330 120 L430 210 L540 150 L650 240 L760 110 L880 200 L990 140 L1100 220 L1260 170 L1260 400 L-60 400Z" fill="url(#rg1)" opacity=".7"/></g>
+        <g id="ridgeFront">
+          <path d="M-60 320 L150 250 L260 300 L390 220 L520 290 L640 230 L780 310 L900 240 L1040 300 L1260 250 L1260 400 L-60 400Z" fill="url(#rg2)"/>
+          <path class="trail-line" d="M-60 320 L150 250 L260 300 L390 220 L520 290 L640 230 L780 310 L900 240 L1040 300 L1260 250" fill="none" stroke="#ff7a2b" stroke-opacity=".45" stroke-width="1.5" stroke-dasharray="6 8"><animate attributeName="stroke-dashoffset" from="0" to="-140" dur="6s" repeatCount="indefinite"/></path>
+        </g>
       </svg>
     </div>
 
@@ -146,9 +165,10 @@
       <div class="float-card fc-1"><div class="fc-val grad-text" id="fcKm">—</div><div class="fc-lbl">km parcourus</div></div>
       <div class="float-card fc-2"><div class="fc-val" id="fcYears">—</div><div class="fc-lbl">ans de trail</div></div>
     </div>
+    <a href="#stats" class="scroll-hint" aria-label="Défiler"><span></span>Défiler</a>
   </section>
 
-  <div class="strip">
+  <div class="strip" id="stats">
     <div class="strip-item"><div class="strip-val" id="sRaces">—</div><div class="strip-lbl">Courses finies</div></div>
     <div class="strip-item"><div class="strip-val" id="sKm">—</div><div class="strip-lbl">Kilomètres</div></div>
     <div class="strip-item"><div class="strip-val" id="sDplus">—</div><div class="strip-lbl">Mètres D+</div></div>
@@ -183,9 +203,10 @@
     const photoWrap = document.getElementById('heroPhotoWrap');
     const noPhoto = `<div class="no-photo">${MOUNTAIN_SVG}</div>`;
 
-    const [{ data: p }, { data: s }, { data: next }] = await Promise.all([
+    const [{ data: p }, { data: s }, { data: past }, { data: next }] = await Promise.all([
       sb.from('profiles').select('hero_title, bio, photo_url').eq('role', 'admin').limit(1).maybeSingle(),
-      sb.from('stats').select('*').limit(1).maybeSingle(),
+      sb.from('stats').select('*').order('id').limit(1).maybeSingle(),
+      sb.from('races').select('distance, dplus').eq('type', 'past'),
       sb.from('races').select('*').eq('type', 'upcoming').gte('date', new Date().toISOString().slice(0, 10)).order('date').limit(1),
     ]);
 
@@ -194,14 +215,13 @@
     photoWrap.innerHTML = p?.photo_url ? `<img src="${esc(p.photo_url)}" alt="Photo de Philou" />` : noPhoto;
     photoWrap.querySelector('img')?.addEventListener('error', () => photoWrap.innerHTML = noPhoto);
 
-    if (s) {
-      document.getElementById('sRaces').textContent = fmtNum(s.total_races);
-      document.getElementById('sKm').textContent = fmtNum(s.total_km);
-      document.getElementById('sDplus').textContent = fmtNum(s.total_dplus);
-      document.getElementById('sYears').textContent = fmtNum(s.years_running);
-      document.getElementById('fcKm').textContent = fmtNum(s.total_km);
-      document.getElementById('fcYears').textContent = fmtNum(s.years_running);
-    }
+    const t = computeTotals(s, past || []);
+    countUp(document.getElementById('sRaces'), t.fin);
+    countUp(document.getElementById('sKm'), t.km);
+    countUp(document.getElementById('sDplus'), t.dplus);
+    countUp(document.getElementById('sYears'), t.years);
+    countUp(document.getElementById('fcKm'), t.km);
+    countUp(document.getElementById('fcYears'), t.years);
 
     const r = next?.[0];
     if (r) {
@@ -212,6 +232,7 @@
         <div class="next-race-body">
           <div><span class="badge ${st.cls}">${st.label}</span></div>
           <div class="next-race-count grad-text" style="margin-top:1rem">${d === 0 ? 'Jour J' : 'J-' + d}${d > 0 ? '<small>jours</small>' : ''}</div>
+          ${d > 0 ? '<div class="live-count" id="liveCount"></div>' : ''}
           <div class="next-race-name">${esc(r.name)}</div>
           <div class="next-race-meta">📍 ${esc(r.location || '—')} · ${fmtDate(r.date)}</div>
           <div class="race-card-specs">
@@ -220,10 +241,58 @@
           </div>
         </div>`;
       document.getElementById('nextSection').style.display = '';
+      startLiveCount(parseDate(r.date));
     }
   }
 
+  // Compte à rebours qui défile à la seconde
+  function startLiveCount(target) {
+    const el = document.getElementById('liveCount');
+    if (!el) return;
+    const pad = n => String(n).padStart(2, '0');
+    const tick = () => {
+      const s = Math.max(0, Math.floor((target - Date.now()) / 1000));
+      el.textContent = `${Math.floor(s / 86400)} j ${pad(Math.floor(s / 3600) % 24)} h ${pad(Math.floor(s / 60) % 60)} min ${pad(s % 60)} s`;
+    };
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  // Parallaxe des montagnes au défilement + photo qui suit la souris
+  function setupHeroFX() {
+    if (FX.reduced) return;
+    const back = document.getElementById('ridgeBack'), front = document.getElementById('ridgeFront');
+    let mx = 0;
+    const apply = () => {
+      const y = scrollY;
+      back.style.transform = `translate(${mx * -14}px, ${y * 0.12}px)`;
+      front.style.transform = `translate(${mx * -28}px, ${y * 0.05}px)`;
+    };
+    addEventListener('scroll', apply, { passive: true });
+
+    if (!FX.fine) return;
+    const hero = document.querySelector('.hero'), photo = document.getElementById('heroPhotoWrap');
+    const cards = document.querySelectorAll('.float-card');
+    hero.addEventListener('pointermove', e => {
+      const r = hero.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
+      mx = px;
+      photo.style.setProperty('--pry', (px * 12).toFixed(2) + 'deg');
+      photo.style.setProperty('--prx', (py * -10).toFixed(2) + 'deg');
+      cards.forEach((c, i) => c.style.translate = `${px * (i ? -26 : 26)}px ${py * (i ? -18 : 18)}px`);
+      apply();
+    });
+    hero.addEventListener('pointerleave', () => {
+      mx = 0;
+      photo.style.removeProperty('--pry'); photo.style.removeProperty('--prx');
+      cards.forEach(c => c.style.translate = '');
+      apply();
+    });
+    magnetize('.hero-ctas .btn', 0.25);
+  }
+
   initPage({ onReady: loadHome });
+  setupHeroFX();
 </script>
 </body>
 </html>
