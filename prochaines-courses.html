@@ -3,307 +3,111 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Prochaines courses — Trail Philou</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#07090d" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css" />
   <style>
-    .races-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1.25rem;
-    }
-    .race-thumb {
-      background: white; border-radius: var(--r-lg);
-      border: 1px solid var(--gray-200); cursor: pointer; overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    }
-    .race-thumb:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.1); border-color: var(--green-mid); }
-    .race-thumb-img { aspect-ratio: 16/9; overflow: hidden; background: var(--gray-100); }
-    .race-thumb-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-    .race-thumb:hover .race-thumb-img img { transform: scale(1.04); }
-    .race-thumb-img .no-img { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2.5rem; background: linear-gradient(135deg, var(--blue-light), var(--green-light)); }
-    .race-thumb-body { padding: 1.25rem; }
-    .race-thumb-date { font-size: 0.75rem; font-weight: 700; color: var(--green); margin-bottom: 0.35rem; }
-    .race-thumb-name { font-family: 'Montserrat', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--gray-900); margin-bottom: 0.3rem; line-height: 1.25; }
-    .race-thumb-loc { font-size: 0.8rem; color: var(--gray-400); margin-bottom: 0.75rem; }
-    .race-thumb-footer { border-top: 1px solid var(--gray-100); padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
-    .race-thumb-specs { display: flex; gap: 0.75rem; font-size: 0.78rem; color: var(--gray-500); }
-
-    /* DRAWER */
-    .detail-overlay { display: none; position: fixed; inset: 0; z-index: 150; background: rgba(15,26,33,0.5); backdrop-filter: blur(3px); }
-    .detail-overlay.open { display: block; }
-    .detail-drawer { position: fixed; top: 0; right: -100%; bottom: 0; width: min(620px, 100vw); background: white; z-index: 151; overflow-y: auto; transition: right 0.35s cubic-bezier(0.4,0,0.2,1); box-shadow: -8px 0 40px rgba(0,0,0,0.15); }
-    .detail-drawer.open { right: 0; }
-    .drawer-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
-    .drawer-img-placeholder { width: 100%; aspect-ratio: 16/9; background: linear-gradient(135deg, var(--blue-light), var(--green-light)); display: flex; align-items: center; justify-content: center; font-size: 4rem; }
-    .drawer-header { padding: 1.5rem 1.75rem 1.25rem; border-bottom: 1px solid var(--gray-100); position: sticky; top: 0; background: white; z-index: 10; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-    .drawer-close { background: var(--gray-100); border: none; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
-    .drawer-close:hover { background: var(--gray-200); }
-    .drawer-title { font-family: 'Montserrat', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--gray-900); line-height: 1.2; }
-    .drawer-sub { font-size: 0.82rem; color: var(--gray-400); margin-top: 0.2rem; }
-    .drawer-body { padding: 1.5rem 1.75rem; }
-    .drawer-section { margin-bottom: 1.75rem; }
-    .drawer-section-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-400); margin-bottom: 0.875rem; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .info-box { background: var(--gray-50); border-radius: var(--r-md); padding: 0.875rem 1rem; }
-    .info-box .ib-val { font-family: 'Montserrat', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--gray-900); }
-    .info-box .ib-lbl { font-size: 0.72rem; color: var(--gray-400); margin-top: 0.1rem; }
-    .drawer-notes { background: var(--gray-50); border-radius: var(--r-md); padding: 1rem 1.25rem; font-size: 0.9rem; line-height: 1.7; color: var(--gray-600); border-left: 3px solid var(--green); }
-    .photos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
-    .photo-item { aspect-ratio: 1; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--gray-200); cursor: pointer; }
-    .photo-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
-    .photo-item:hover img { transform: scale(1.05); }
-
-    .video-list { display: flex; flex-direction: column; gap: 0.75rem; }
-    .video-item { border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--gray-200); }
-    .video-item video { width: 100%; display: block; max-height: 260px; background: var(--gray-900); }
-    .lightbox { display: none; position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; }
-    .lightbox.open { display: flex; }
-    .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: var(--r-md); }
-    .lightbox-close { position: absolute; top: 1.5rem; right: 1.5rem; background: rgba(255,255,255,0.15); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
-
-    .status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 50px; font-size: 0.75rem; font-weight: 600; }
-    .status-inscrit { background: var(--green-light); color: var(--green-dark); }
-    .status-objectif { background: var(--blue-light); color: var(--blue-dark); }
-    .status-selection { background: #fff3e0; color: #e65100; }
+    .group-title { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; margin: 2.5rem 0 1rem; display: flex; align-items: center; gap: 0.6rem; }
+    .group-title:first-child { margin-top: 0; }
+    .group-title .count { font-family: var(--font); font-size: 0.75rem; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 0.15rem 0.6rem; }
+    .race-card.is-done .race-card-media img { filter: saturate(0.6); }
   </style>
 </head>
-<body>
-<aside class="sidebar">
-  <div class="sidebar-logo"><div class="logo">TRAIL PHILOU</div><div class="logo-sub">Mon univers trail</div></div>
-  <nav class="sidebar-nav">
-    <a href="index.html" class="nav-link"><span class="ni">🏠</span> Accueil</a>
-    <div class="sidebar-section">Mon trail</div>
-    <a href="statistiques.html" class="nav-link"><span class="ni">📊</span> Statistiques</a>
-    <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
-    <a href="prochaines-courses.html" class="nav-link active"><span class="ni">🗓️</span> Prochaines courses</a>
-    <a href="materiel.html" class="nav-link"><span class="ni">🎒</span> Mon matériel</a>
-    <div style="flex:1"></div>
-  </nav>
-  <div class="sidebar-bottom" id="userBottom" style="display:none">
-    <div class="user-pill">
-      <div class="user-avatar" id="userAv">?</div>
-      <div class="user-name" id="userName">—</div>
-      <button class="btn-logout" id="btnLogout">⎋</button>
-    </div>
-  </div>
-</aside>
+<body data-page="upcoming">
 
 <main class="main">
   <div class="page-header">
-    <div class="page-title">🗓️ Prochaines courses</div>
-    <div class="page-sub">Cliquez sur une course pour voir tous les détails</div>
+    <div class="page-eyebrow">🗓️ Calendrier</div>
+    <h1 class="page-title">Prochaines courses</h1>
+    <p class="page-sub">Les objectifs à venir et le compte à rebours jusqu'au départ. Clique sur une course pour tous les détails.</p>
   </div>
-  <div class="page-content">
-    <div class="races-grid" id="racesGrid">
-      <div class="empty"><div class="empty-icon">⏳</div><p>Chargement…</p></div>
-    </div>
+  <div class="page-content" id="content">
+    <div class="card-grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
   </div>
 </main>
 
-<!-- DRAWER -->
-<div class="detail-overlay" id="detailOverlay"></div>
-<div class="detail-drawer" id="detailDrawer">
-  <div id="drawerImgWrap"></div>
-  <div class="drawer-header">
-    <div>
-      <div class="drawer-title" id="drawerTitle">—</div>
-      <div class="drawer-sub" id="drawerSub">—</div>
-    </div>
-    <button class="drawer-close" id="drawerClose">✕</button>
-  </div>
-  <div class="drawer-body">
-    <div class="drawer-section" id="drawerInfo"></div>
-    <div class="drawer-section" id="drawerNotes"></div>
-    <div class="drawer-section" id="drawerPhotos"></div>
-    <div class="drawer-section" id="drawerVideos"></div>
-  </div>
-</div>
-
-<div class="lightbox" id="lightbox">
-  <button class="lightbox-close" id="lightboxClose">✕</button>
-  <img id="lightboxImg" src="" alt="" />
-</div>
-
-<div class="toast" id="toast"></div>
-
-<!-- ─── MODAL CONNEXION ─── -->
-<div id="authWall" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(15,26,33,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:20px;padding:2.5rem;width:100%;max-width:400px;margin:1rem;box-shadow:0 24px 80px rgba(0,0,0,0.2);">
-    <div style="font-family:Montserrat,sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:0.25rem">Bienvenue !</div>
-    <div style="color:#8fa3b0;font-size:0.875rem;margin-bottom:1.5rem">Connectez-vous pour accéder à ce contenu</div>
-    <div style="display:flex;border-bottom:2px solid #eef2f5;margin-bottom:1.5rem">
-      <button onclick="awShowTab('login')" id="awTabLogin" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#1a8fd1;border-bottom:2px solid #1a8fd1;margin-bottom:-2px">Connexion</button>
-      <button onclick="awShowTab('signup')" id="awTabSignup" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#8fa3b0;border-bottom:2px solid transparent;margin-bottom:-2px">Inscription</button>
-    </div>
-    <div id="awLogin">
-      <input id="awLoginEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awLoginPass" type="password" placeholder="Mot de passe" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <button onclick="awLogin()" id="awBtnLogin" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Se connecter</button>
-      <div id="awLoginMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
-    </div>
-    <div id="awSignup" style="display:none">
-      <input id="awSignupName" type="text" placeholder="Prénom" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awSignupEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awSignupPass" type="password" placeholder="Mot de passe (6 car. min)" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <button onclick="awSignup()" id="awBtnSignup" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Créer mon compte</button>
-      <div id="awSignupMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
-    </div>
-  </div>
-</div>
 <script src="shared.js"></script>
 <script>
   let races = [];
-  const statusMap = { inscrit: '✅ Inscrit', objectif: '🎯 Objectif', selection: '⚡ Sélection' };
-  const statusClass = { inscrit: 'status-inscrit', objectif: 'status-objectif', selection: 'status-selection' };
 
   async function loadPage() {
-    const { data } = await sb.from('races').select('*').eq('type','upcoming').order('date',{ascending:true});
+    const { data, error } = await sb.from('races').select('*').eq('type', 'upcoming').order('date', { ascending: true });
+    const el = document.getElementById('content');
+    if (error) { el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Impossible de charger les courses.</p></div>`; return; }
     races = data || [];
-    renderGrid();
-  }
-
-  function renderGrid() {
-    const el = document.getElementById('racesGrid');
     if (!races.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucune course à venir pour le moment</p></div>'; return; }
-    el.innerHTML = races.map((r,i) => `
-      <div class="race-thumb" onclick="openDrawer(${i})">
-        <div class="race-thumb-img">
-          ${r.image_url ? `<img src="${r.image_url}" alt="${r.name}" />` : `<div class="no-img">🏔️</div>`}
+
+    const future = races.filter(r => daysUntil(r.date) >= 0);
+    const done = races.filter(r => daysUntil(r.date) < 0).reverse();
+    let html = '';
+    if (future.length) html += `<h2 class="group-title">À venir <span class="count">${future.length}</span></h2><div class="card-grid">${future.map(card).join('')}</div>`;
+    else html += `<div class="empty" style="padding:2.5rem 1rem"><div class="empty-icon">🎯</div><p>Pas de nouvel objectif programmé pour l'instant.</p></div>`;
+    if (done.length) html += `<h2 class="group-title">Date passée · résultat à venir <span class="count">${done.length}</span></h2><div class="card-grid">${done.map(card).join('')}</div>`;
+    el.innerHTML = html;
+  }
+
+  function countdown(r) {
+    const d = daysUntil(r.date);
+    if (d < 0) return `<div class="countdown">Terminée<small>il y a ${-d} jour${d < -1 ? 's' : ''}</small></div>`;
+    if (d === 0) return `<div class="countdown grad-text">Jour J !</div>`;
+    return `<div class="countdown"><span class="grad-text">J-${d}</span><small>avant le départ</small></div>`;
+  }
+
+  function card(r, i) {
+    const st = STATUS[r.status] || STATUS.objectif;
+    const done = daysUntil(r.date) < 0;
+    return `
+    <button class="race-card${done ? ' is-done' : ''}" style="animation-delay:${i * 50}ms" onclick="showRace('${r.id}')">
+      <div class="race-card-media">
+        ${r.image_url ? `<img src="${esc(r.image_url)}" alt="" loading="lazy" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}
+        <div class="media-top">
+          <span class="date-chip">📅 ${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          <span class="badge ${st.cls}">${st.label}</span>
         </div>
-        <div class="race-thumb-body">
-          <div class="race-thumb-date">📅 ${fmtDate(r.date)}</div>
-          <div class="race-thumb-name">${r.name}</div>
-          <div class="race-thumb-loc">📍 ${r.location||'—'}</div>
+        ${countdown(r)}
+      </div>
+      <div class="race-card-body">
+        <div class="race-card-kicker">${esc(RACE_TYPES[r.race_type] || 'Trail')}</div>
+        <div class="race-card-name">${esc(r.name)}</div>
+        <div class="race-card-loc">📍 ${esc(r.location || '—')}</div>
+        <div class="race-card-specs">
+          ${r.distance ? `<span class="spec">📏 ${esc(r.distance)} km</span>` : ''}
+          ${r.dplus ? `<span class="spec">⛰️ ${fmtNum(r.dplus)} m D+</span>` : ''}
         </div>
-        <div class="race-thumb-footer">
-          <div class="race-thumb-specs">
-            ${r.distance ? `<span>📏 ${r.distance} km</span>` : ''}
-            ${r.dplus ? `<span>⛰️ ${r.dplus} m</span>` : ''}
+      </div>
+    </button>`;
+  }
+
+  function showRace(id) {
+    const r = races.find(x => x.id === id);
+    if (!r) return;
+    const st = STATUS[r.status] || STATUS.objectif;
+    const d = daysUntil(r.date);
+    openDrawer(`
+      <div class="drawer-cover">${r.image_url ? `<img src="${esc(r.image_url)}" alt="" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}</div>
+      <div class="drawer-head">
+        <span class="badge ${st.cls}">${st.label}</span>
+        <div class="drawer-title" style="margin-top:.7rem">${esc(r.name)}</div>
+        <div class="drawer-sub">📍 ${esc(r.location || '—')} · ${fmtDate(r.date)}</div>
+      </div>
+      <div class="drawer-body">
+        <div class="drawer-section">
+          <div class="drawer-section-title">📋 La course</div>
+          <div class="kpi-grid">
+            <div class="kpi accent"><div class="kpi-val">${d < 0 ? 'Passée' : d === 0 ? 'Jour J' : 'J-' + d}</div><div class="kpi-lbl">Compte à rebours</div></div>
+            <div class="kpi"><div class="kpi-val">${esc(RACE_TYPES[r.race_type] || 'Trail')}</div><div class="kpi-lbl">Type</div></div>
+            <div class="kpi"><div class="kpi-val">${r.distance ? esc(r.distance) + ' km' : '—'}</div><div class="kpi-lbl">Distance</div></div>
+            <div class="kpi"><div class="kpi-val">${r.dplus ? fmtNum(r.dplus) + ' m' : '—'}</div><div class="kpi-lbl">Dénivelé +</div></div>
           </div>
-          <span class="status-badge ${statusClass[r.status]||'status-objectif'}">${statusMap[r.status]||'Objectif'}</span>
         </div>
-      </div>`).join('');
+        ${r.notes ? `<div class="drawer-section"><div class="drawer-section-title">📝 Notes & objectifs</div><div class="drawer-notes">${esc(r.notes)}</div></div>` : ''}
+        ${mediaSections(r)}
+      </div>`);
   }
 
-  function openDrawer(i) {
-    const r = races[i];
-    // Image
-    document.getElementById('drawerImgWrap').innerHTML = r.image_url
-      ? `<img class="drawer-img" src="${r.image_url}" alt="${r.name}" />`
-      : `<div class="drawer-img-placeholder">🏔️</div>`;
-
-    document.getElementById('drawerTitle').textContent = r.name;
-    document.getElementById('drawerSub').textContent = '📍 ' + (r.location||'—') + ' · ' + fmtDate(r.date);
-
-    // Infos
-    let html = '<div class="drawer-section-title">📋 Infos de la course</div><div class="info-grid">';
-    html += `<div class="info-box"><div class="ib-val">${r.distance ? r.distance+' km' : '—'}</div><div class="ib-lbl">Distance</div></div>`;
-    html += `<div class="info-box"><div class="ib-val">${r.dplus ? r.dplus+' m' : '—'}</div><div class="ib-lbl">Dénivelé+</div></div>`;
-    html += `<div class="info-box"><div class="ib-val">${r.race_type||'Trail'}</div><div class="ib-lbl">Type</div></div>`;
-    html += `<div class="info-box"><div class="ib-val"><span class="status-badge ${statusClass[r.status]||'status-objectif'}">${statusMap[r.status]||'Objectif'}</span></div><div class="ib-lbl">Statut</div></div>`;
-    html += '</div>';
-    document.getElementById('drawerInfo').innerHTML = html;
-
-    // Notes
-    document.getElementById('drawerNotes').innerHTML = r.notes
-      ? `<div class="drawer-section-title">📝 Notes & objectifs</div><div class="drawer-notes">${r.notes}</div>`
-      : '';
-
-    // Photos supplémentaires
-    let imgs = r.images || [];
-    if (typeof imgs === 'string') { try { imgs = JSON.parse(imgs); } catch(e) { imgs = imgs.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); } }
-    document.getElementById('drawerPhotos').innerHTML = imgs.length
-      ? `<div class="drawer-section-title">🖼️ Photos (${imgs.length})</div><div class="photos-grid">${imgs.map(src=>`<div class="photo-item" onclick="openLightbox('${src}')"><img src="${src}" loading="lazy" /></div>`).join('')}</div>`
-      : '';
-
-    // Vidéos
-    let vids = r.videos || [];
-    if (typeof vids === 'string') { try { vids = JSON.parse(vids); } catch(e) { vids = vids.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); } }
-    const drawerVids = document.getElementById('drawerVideos');
-    if (drawerVids) {
-      drawerVids.innerHTML = vids.length
-        ? `<div class="drawer-section-title">🎬 Vidéos (${vids.length})</div><div class="video-list">${vids.map(v=>`<div class="video-item"><video src="${v}" controls preload="metadata"></video></div>`).join('')}</div>`
-        : '';
-    }
-
-    document.getElementById('detailOverlay').classList.add('open');
-    document.getElementById('detailDrawer').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeDrawer() {
-    document.getElementById('detailOverlay').classList.remove('open');
-    document.getElementById('detailDrawer').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
-  document.getElementById('detailOverlay').addEventListener('click', closeDrawer);
-
-  function openLightbox(src) { document.getElementById('lightboxImg').src = src; document.getElementById('lightbox').classList.add('open'); }
-  document.getElementById('lightboxClose').addEventListener('click', () => document.getElementById('lightbox').classList.remove('open'));
-  document.getElementById('lightbox').addEventListener('click', e => { if(e.target===document.getElementById('lightbox')) document.getElementById('lightbox').classList.remove('open'); });
-
-  document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
-
-  sb.auth.getSession().then(({ data: { session } }) => {
-    if (!session) {
-      document.getElementById('authWall').style.display = 'flex';
-    } else {
-      document.getElementById('userBottom').style.display = '';
-      const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
-      document.getElementById('userName').textContent = name;
-      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
-      loadPage();
-    }
-  });
-  function awShowTab(tab) {
-    document.getElementById('awLogin').style.display = tab==='login' ? '' : 'none';
-    document.getElementById('awSignup').style.display = tab==='signup' ? '' : 'none';
-    document.getElementById('awTabLogin').style.cssText += tab==='login' ? ';color:#1a8fd1;border-bottom:2px solid #1a8fd1' : ';color:#8fa3b0;border-bottom:2px solid transparent';
-    document.getElementById('awTabSignup').style.cssText += tab==='signup' ? ';color:#1a8fd1;border-bottom:2px solid #1a8fd1' : ';color:#8fa3b0;border-bottom:2px solid transparent';
-  }
-  function awMsg(id, txt, type) {
-    const el = document.getElementById(id);
-    el.textContent = txt;
-    el.style.display = '';
-    el.style.background = type==='error' ? '#fee2e2' : '#e8f7ee';
-    el.style.color = type==='error' ? '#b91c1c' : '#0d5230';
-  }
-  async function awLogin() {
-    const email = document.getElementById('awLoginEmail').value;
-    const pass = document.getElementById('awLoginPass').value;
-    if (!email || !pass) return awMsg('awLoginMsg','Remplissez tous les champs.','error');
-    const btn = document.getElementById('awBtnLogin');
-    btn.disabled=true; btn.textContent='Connexion…';
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    btn.disabled=false; btn.textContent='Se connecter';
-    if (error) return awMsg('awLoginMsg','Email ou mot de passe incorrect.','error');
-    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
-    if (profile?.role === 'admin') { window.location.href = 'dashboard.html'; return; }
-    document.getElementById('authWall').style.display = 'none';
-    updateUserUI(data.user);
-  }
-  async function awSignup() {
-    const name = document.getElementById('awSignupName').value;
-    const email = document.getElementById('awSignupEmail').value;
-    const pass = document.getElementById('awSignupPass').value;
-    if (!name || !email || !pass) return awMsg('awSignupMsg','Remplissez tous les champs.','error');
-    const btn = document.getElementById('awBtnSignup');
-    btn.disabled=true; btn.textContent='Création…';
-    const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    btn.disabled=false; btn.textContent='Créer mon compte';
-    if (error) return awMsg('awSignupMsg', error.message, 'error');
-    const { data: loginData } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (loginData?.user) { document.getElementById('authWall').style.display='none'; updateUserUI(loginData.user); }
-  }
-  function updateUserUI(user) {
-    const name = user.user_metadata?.full_name || user.email.split('@')[0];
-    const bottom = document.getElementById('userBottom');
-    if (bottom) { bottom.style.display=''; document.getElementById('userName').textContent=name; document.getElementById('userAv').textContent=name.charAt(0).toUpperCase(); }
-  }
+  initPage({ requireAuth: true, onReady: loadPage });
 </script>
-
-
 </body>
 </html>

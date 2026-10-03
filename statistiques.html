@@ -3,220 +3,176 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Statistiques — Trail Philou</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#07090d" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css" />
   <style>
-    .big-stat {
-      background: white; border-radius: var(--r-xl); border: 1px solid var(--gray-200);
-      padding: 2rem; text-align: center;
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat {
+      position: relative; overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: 1.5rem 1.6rem; animation: slideUp 0.4s ease both;
     }
-    .big-stat .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-    .big-stat .val {
-      font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 900;
-      background: linear-gradient(135deg, var(--blue), var(--green));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .big-stat .lbl { font-size: 0.8rem; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25rem; }
-    .big-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
-    .year-bar { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--gray-100); }
-    .year-bar:last-child { border-bottom: none; }
-    .year-label { font-weight: 700; color: var(--gray-800); min-width: 50px; font-size: 0.9rem; }
-    .bar-track { flex: 1; height: 10px; background: var(--gray-100); border-radius: 99px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width 0.8s ease; }
-    .bar-val { font-size: 0.8rem; font-weight: 600; color: var(--gray-600); min-width: 60px; text-align: right; }
-    .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .kpi-box { background: var(--gray-50); border-radius: var(--r-md); padding: 1rem 1.25rem; }
-    .kpi-box .k-val { font-family: 'Montserrat', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--gray-900); }
-    .kpi-box .k-lbl { font-size: 0.75rem; color: var(--gray-400); font-weight: 500; }
+    .stat .s-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; background: var(--surface-2); border: 1px solid var(--border); margin-bottom: 1.1rem; }
+    .stat .s-val { font-family: var(--font-display); font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+    .stat .s-val small { font-size: 0.45em; color: var(--muted); font-weight: 700; margin-left: 0.25rem; letter-spacing: 0; }
+    .stat .s-lbl { font-size: 0.74rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 0.55rem; }
+    .stat.hl { background: linear-gradient(135deg, rgba(255,106,43,0.18), rgba(255,178,36,0.05)); border-color: rgba(255,106,43,0.35); }
+    .stat.hl .s-val { background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+    .two-col { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; }
+    .two-col .card + .card { margin-top: 0; }
+
+    .ring-wrap { display: flex; align-items: center; gap: 1.75rem; }
+    .ring { position: relative; width: 150px; height: 150px; flex-shrink: 0; }
+    .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring .ring-val { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-family: var(--font-display); font-size: 2rem; font-weight: 800; }
+    .ring .ring-val small { display: block; font-family: var(--font); font-size: 0.68rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+    .legend { display: flex; flex-direction: column; gap: 0.8rem; font-size: 0.9rem; color: var(--muted); }
+    .legend b { color: var(--text); font-family: var(--font-display); font-size: 1.15rem; margin-right: 0.35rem; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 0.5rem; }
+
+    .year-bar { display: grid; grid-template-columns: 54px 1fr auto; align-items: center; gap: 1rem; padding: 0.7rem 0; }
+    .year-label { font-family: var(--font-display); font-weight: 700; color: var(--text); }
+    .bar-track { height: 12px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; width: 0; border-radius: 99px; background: var(--grad); transition: width 1s cubic-bezier(.2,.8,.2,1); }
+    .bar-val { font-size: 0.82rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+
+    .records { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .record { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1rem 1.1rem; }
+    .record .r-val { font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; line-height: 1.15; }
+    .record .r-lbl { font-size: 0.74rem; color: var(--dim); margin-top: 0.3rem; }
+    .record .r-sub { font-size: 0.76rem; color: var(--accent-2); margin-top: 0.15rem; }
+
+    @media (max-width: 1100px) { .two-col { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) { .stat-grid { grid-template-columns: 1fr 1fr; } .stat { padding: 1.2rem; } }
+    @media (max-width: 420px) { .records { grid-template-columns: 1fr; } .ring-wrap { flex-direction: column; align-items: flex-start; } }
   </style>
 </head>
-<body>
-<aside class="sidebar">
-  <div class="sidebar-logo"><div class="logo">TRAIL PHILOU</div><div class="logo-sub">Mon univers trail</div></div>
-  <nav class="sidebar-nav">
-    <a href="index.html" class="nav-link"><span class="ni">🏠</span> Accueil</a>
-    <div class="sidebar-section">Mon trail</div>
-    <a href="statistiques.html" class="nav-link active"><span class="ni">📊</span> Statistiques</a>
-    <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
-    <a href="prochaines-courses.html" class="nav-link"><span class="ni">🗓️</span> Prochaines courses</a>
-    <a href="materiel.html" class="nav-link"><span class="ni">🎒</span> Mon matériel</a>
-    <div style="flex:1"></div>
-  </nav>
-  <div class="sidebar-bottom" id="userBottom" style="display:none">
-    <div class="user-pill">
-      <div class="user-avatar" id="userAv">?</div>
-      <div class="user-name" id="userName">—</div>
-      <button class="btn-logout" id="btnLogout">⎋</button>
-    </div>
-  </div>
-</aside>
+<body data-page="stats">
 
 <main class="main">
   <div class="page-header">
-    <div class="page-title">📊 Statistiques</div>
-    <div class="page-sub">Tous mes chiffres en trail</div>
+    <div class="page-eyebrow">📊 En chiffres</div>
+    <h1 class="page-title">Statistiques</h1>
+    <p class="page-sub">Tous mes chiffres en trail : volume, régularité et records personnels.</p>
   </div>
   <div class="page-content">
-    <div class="big-grid" id="bigGrid">
-      <div class="big-stat"><div class="icon">🏅</div><div class="val" id="stRaces">—</div><div class="lbl">Courses finies</div></div>
-      <div class="big-stat"><div class="icon">🚩</div><div class="val" id="stDnf">—</div><div class="lbl">Courses non finies</div></div>
-      <div class="big-stat"><div class="icon">🏁</div><div class="val" id="stTotal">—</div><div class="lbl">Courses au total</div></div>
-      <div class="big-stat"><div class="icon">🗓️</div><div class="val" id="stYears">—</div><div class="lbl">Années de pratique</div></div>
+    <div class="stat-grid">
+      <div class="stat hl"><div class="s-icon">🏅</div><div class="s-val" id="stRaces">—</div><div class="s-lbl">Courses finies</div></div>
+      <div class="stat" style="animation-delay:50ms"><div class="s-icon">🛣️</div><div class="s-val" id="stKm">—</div><div class="s-lbl">Kilomètres en course</div></div>
+      <div class="stat" style="animation-delay:100ms"><div class="s-icon">⛰️</div><div class="s-val" id="stDplus">—</div><div class="s-lbl">Mètres de D+</div></div>
+      <div class="stat" style="animation-delay:150ms"><div class="s-icon">🏁</div><div class="s-val" id="stTotal">—</div><div class="s-lbl">Départs au total</div></div>
+      <div class="stat" style="animation-delay:200ms"><div class="s-icon">🚩</div><div class="s-val" id="stDnf">—</div><div class="s-lbl">Abandons (DNF)</div></div>
+      <div class="stat" style="animation-delay:250ms"><div class="s-icon">🗓️</div><div class="s-val" id="stYears">—</div><div class="s-lbl">Années de pratique</div></div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><div class="card-title">Courses par année</div></div>
-      <div class="card-body" id="yearBars"><p style="color:var(--gray-400)">Chargement…</p></div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Courses détaillées par année</div><span class="badge badge-gray" id="yearHint"></span></div>
+        <div class="card-body" id="yearBars"><p style="color:var(--dim)">Chargement…</p></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Taux de finisher</div></div>
+        <div class="card-body">
+          <div class="ring-wrap">
+            <div class="ring">
+              <svg viewBox="0 0 120 120">
+                <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a1f"/><stop offset="1" stop-color="#ffc23a"/></linearGradient></defs>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="12"/>
+                <circle id="ringArc" cx="60" cy="60" r="50" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="314.16" style="transition: stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)"/>
+              </svg>
+              <div class="ring-val"><div><span id="ringPct">—</span><small>finisher</small></div></div>
+            </div>
+            <div class="legend">
+              <div><i style="background:var(--accent)"></i><b id="lgFin">—</b>courses finies</div>
+              <div><i style="background:var(--surface-3)"></i><b id="lgDnf">—</b>abandons</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div style="margin-top:1.5rem" class="card">
+    <div class="card" style="margin-top:1.5rem">
       <div class="card-header"><div class="card-title">Records personnels</div></div>
       <div class="card-body">
-        <div class="kpi-row" id="records">
-          <div class="kpi-box"><div class="k-val" id="recBest">—</div><div class="k-lbl">Meilleur classement</div></div>
-          <div class="kpi-box"><div class="k-val" id="recLong">—</div><div class="k-lbl">Plus longue distance (km)</div></div>
-          <div class="kpi-box"><div class="k-val" id="recDplus">—</div><div class="k-lbl">Plus grand D+ (m)</div></div>
-          <div class="kpi-box"><div class="k-val" id="recYear">—</div><div class="k-lbl">Année la plus active</div></div>
+        <div class="records">
+          <div class="record"><div class="r-val" id="recBest">—</div><div class="r-sub" id="recBestSub"></div><div class="r-lbl">Meilleur classement</div></div>
+          <div class="record"><div class="r-val" id="recLong">—</div><div class="r-sub" id="recLongSub"></div><div class="r-lbl">Plus longue distance</div></div>
+          <div class="record"><div class="r-val" id="recDplus">—</div><div class="r-sub" id="recDplusSub"></div><div class="r-lbl">Plus gros dénivelé</div></div>
+          <div class="record"><div class="r-val" id="recYear">—</div><div class="r-sub" id="recYearSub"></div><div class="r-lbl">Année la plus active</div></div>
         </div>
       </div>
     </div>
   </div>
 </main>
 
-<div class="toast" id="toast"></div>
-
-<!-- ─── MODAL CONNEXION ─── -->
-<div id="authWall" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(15,26,33,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:20px;padding:2.5rem;width:100%;max-width:400px;margin:1rem;box-shadow:0 24px 80px rgba(0,0,0,0.2);">
-    <div style="font-family:Montserrat,sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:0.25rem">Bienvenue !</div>
-    <div style="color:#8fa3b0;font-size:0.875rem;margin-bottom:1.5rem">Connectez-vous pour accéder à ce contenu</div>
-    <div style="display:flex;border-bottom:2px solid #eef2f5;margin-bottom:1.5rem">
-      <button onclick="awShowTab('login')" id="awTabLogin" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#1a8fd1;border-bottom:2px solid #1a8fd1;margin-bottom:-2px">Connexion</button>
-      <button onclick="awShowTab('signup')" id="awTabSignup" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#8fa3b0;border-bottom:2px solid transparent;margin-bottom:-2px">Inscription</button>
-    </div>
-    <div id="awLogin">
-      <input id="awLoginEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awLoginPass" type="password" placeholder="Mot de passe" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <button onclick="awLogin()" id="awBtnLogin" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Se connecter</button>
-      <div id="awLoginMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
-    </div>
-    <div id="awSignup" style="display:none">
-      <input id="awSignupName" type="text" placeholder="Prénom" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awSignupEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awSignupPass" type="password" placeholder="Mot de passe (6 car. min)" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <button onclick="awSignup()" id="awBtnSignup" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Créer mon compte</button>
-      <div id="awSignupMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
-    </div>
-  </div>
-</div>
 <script src="shared.js"></script>
 <script>
+  const set = (id, v) => document.getElementById(id).textContent = v;
+
   async function loadPage() {
+    const [{ data: s }, { data: races }] = await Promise.all([
+      sb.from('stats').select('*').limit(1).maybeSingle(),
+      sb.from('races').select('name, date, distance, dplus, rank').eq('type', 'past'),
+    ]);
+    const list = races || [];
 
-    const { data: stats } = await sb.from('stats').select('*').single();
-    if (stats) {
-      document.getElementById('stRaces').textContent = stats.total_races || 0;
-      document.getElementById('stDnf').textContent = stats.total_dnf || 0;
-      document.getElementById('stTotal').textContent = (stats.total_races || 0) + (stats.total_dnf || 0);
-      document.getElementById('stYears').textContent = (stats.years_running || 0) + ' ans';
+    // Totaux saisis dans le dashboard ; à défaut, calculés depuis les courses détaillées
+    const fin = s?.total_races || list.length;
+    const dnf = s?.total_dnf || 0;
+    const km = s?.total_km || Math.round(list.reduce((a, r) => a + (+r.distance || 0), 0));
+    const dplus = s?.total_dplus || list.reduce((a, r) => a + (+r.dplus || 0), 0);
+    set('stRaces', fmtNum(fin));
+    set('stDnf', fmtNum(dnf));
+    set('stTotal', fmtNum(fin + dnf));
+    set('stKm', fmtNum(km));
+    set('stDplus', fmtNum(dplus));
+    document.getElementById('stYears').innerHTML = `${fmtNum(s?.years_running || 0)}<small>ans</small>`;
+
+    const pct = fin + dnf ? Math.round(fin / (fin + dnf) * 100) : 0;
+    set('ringPct', fin + dnf ? pct + '%' : '—');
+    set('lgFin', fmtNum(fin)); set('lgDnf', fmtNum(dnf));
+    setTimeout(() => document.getElementById("ringArc").style.strokeDashoffset = 314.16 * (1 - pct / 100), 80);
+
+    if (!list.length) {
+      document.getElementById('yearBars').innerHTML = '<div class="empty" style="padding:2rem"><div class="empty-icon">📊</div><p>Aucune course détaillée pour l\'instant</p></div>';
+      return;
     }
 
-    // Courses par année
-    const { data: races } = await sb.from('races').select('date, distance, dplus, rank').eq('type', 'past');
-    if (races && races.length) {
-      const byYear = {};
-      let maxDist = 0, maxDplus = 0, bestRank = null, yearCounts = {};
-      races.forEach(r => {
-        const y = new Date(r.date).getFullYear();
-        byYear[y] = (byYear[y] || 0) + 1;
-        yearCounts[y] = (yearCounts[y] || 0) + 1;
-        if (r.distance && r.distance > maxDist) maxDist = r.distance;
-        if (r.dplus && r.dplus > maxDplus) maxDplus = r.dplus;
-        if (r.rank) {
-          const num = parseInt(r.rank);
-          if (!bestRank || num < parseInt(bestRank)) bestRank = r.rank;
-        }
-      });
-      const maxCount = Math.max(...Object.values(byYear));
-      const sortedYears = Object.keys(byYear).sort((a,b) => b-a);
-      document.getElementById('yearBars').innerHTML = sortedYears.map(y => `
-        <div class="year-bar">
-          <div class="year-label">${y}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(byYear[y]/maxCount*100)}%"></div></div>
-          <div class="bar-val">${byYear[y]} course${byYear[y]>1?'s':''}</div>
-        </div>`).join('');
+    const byYear = {};
+    let longest = null, highest = null, best = null;
+    list.forEach(r => {
+      const y = parseDate(r.date).getFullYear();
+      byYear[y] = byYear[y] || { n: 0, km: 0 };
+      byYear[y].n++; byYear[y].km += +r.distance || 0;
+      if (+r.distance && (!longest || +r.distance > +longest.distance)) longest = r;
+      if (+r.dplus && (!highest || +r.dplus > +highest.dplus)) highest = r;
+      const pos = parseInt(String(r.rank || '').replace(/\D+.*$/, ''), 10);
+      if (pos > 0 && (!best || pos < best.pos)) best = { ...r, pos };
+    });
 
-      document.getElementById('recBest').textContent = bestRank || '—';
-      document.getElementById('recLong').textContent = maxDist ? maxDist + ' km' : '—';
-      document.getElementById('recDplus').textContent = maxDplus ? maxDplus.toLocaleString() + ' m' : '—';
-      const bestYear = Object.entries(yearCounts).sort((a,b) => b[1]-a[1])[0];
-      document.getElementById('recYear').textContent = bestYear ? bestYear[0] + ' (' + bestYear[1] + ' courses)' : '—';
-    } else {
-      document.getElementById('yearBars').innerHTML = '<div class="empty"><div class="empty-icon">📊</div><p>Aucune donnée encore</p></div>';
-    }
+    const years = Object.keys(byYear).sort((a, b) => b - a);
+    const maxN = Math.max(...years.map(y => byYear[y].n));
+    set('yearHint', `${list.length} course${list.length > 1 ? 's' : ''} détaillée${list.length > 1 ? 's' : ''}`);
+    document.getElementById('yearBars').innerHTML = years.map(y => `
+      <div class="year-bar">
+        <div class="year-label">${y}</div>
+        <div class="bar-track"><div class="bar-fill" data-w="${Math.round(byYear[y].n / maxN * 100)}"></div></div>
+        <div class="bar-val">${byYear[y].n} course${byYear[y].n > 1 ? 's' : ''} · ${fmtNum(Math.round(byYear[y].km))} km</div>
+      </div>`).join('');
+    setTimeout(() => document.querySelectorAll(".bar-fill").forEach(b => b.style.width = b.dataset.w + '%'), 80);
+
+    if (best) { set('recBest', best.rank); set('recBestSub', best.name); }
+    if (longest) { set('recLong', fmtNum(longest.distance) + ' km'); set('recLongSub', longest.name); }
+    if (highest) { set('recDplus', fmtNum(highest.dplus) + ' m'); set('recDplusSub', highest.name); }
+    const top = years.reduce((a, y) => byYear[y].n > byYear[a].n ? y : a, years[0]);
+    set('recYear', top); set('recYearSub', `${byYear[top].n} course${byYear[top].n > 1 ? 's' : ''}`);
   }
 
-  document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
-
-  sb.auth.getSession().then(({ data: { session } }) => {
-    if (!session) {
-      document.getElementById('authWall').style.display = 'flex';
-    } else {
-      document.getElementById('userBottom').style.display = '';
-      const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
-      document.getElementById('userName').textContent = name;
-      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
-      loadPage();
-    }
-  });
-  function awShowTab(tab) {
-    document.getElementById('awLogin').style.display = tab==='login' ? '' : 'none';
-    document.getElementById('awSignup').style.display = tab==='signup' ? '' : 'none';
-    document.getElementById('awTabLogin').style.cssText += tab==='login' ? ';color:#1a8fd1;border-bottom:2px solid #1a8fd1' : ';color:#8fa3b0;border-bottom:2px solid transparent';
-    document.getElementById('awTabSignup').style.cssText += tab==='signup' ? ';color:#1a8fd1;border-bottom:2px solid #1a8fd1' : ';color:#8fa3b0;border-bottom:2px solid transparent';
-  }
-  function awMsg(id, txt, type) {
-    const el = document.getElementById(id);
-    el.textContent = txt;
-    el.style.display = '';
-    el.style.background = type==='error' ? '#fee2e2' : '#e8f7ee';
-    el.style.color = type==='error' ? '#b91c1c' : '#0d5230';
-  }
-  async function awLogin() {
-    const email = document.getElementById('awLoginEmail').value;
-    const pass = document.getElementById('awLoginPass').value;
-    if (!email || !pass) return awMsg('awLoginMsg','Remplissez tous les champs.','error');
-    const btn = document.getElementById('awBtnLogin');
-    btn.disabled=true; btn.textContent='Connexion…';
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    btn.disabled=false; btn.textContent='Se connecter';
-    if (error) return awMsg('awLoginMsg','Email ou mot de passe incorrect.','error');
-    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
-    if (profile?.role === 'admin') { window.location.href = 'dashboard.html'; return; }
-    document.getElementById('authWall').style.display = 'none';
-    updateUserUI(data.user);
-  }
-  async function awSignup() {
-    const name = document.getElementById('awSignupName').value;
-    const email = document.getElementById('awSignupEmail').value;
-    const pass = document.getElementById('awSignupPass').value;
-    if (!name || !email || !pass) return awMsg('awSignupMsg','Remplissez tous les champs.','error');
-    const btn = document.getElementById('awBtnSignup');
-    btn.disabled=true; btn.textContent='Création…';
-    const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    btn.disabled=false; btn.textContent='Créer mon compte';
-    if (error) return awMsg('awSignupMsg', error.message, 'error');
-    const { data: loginData } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (loginData?.user) { document.getElementById('authWall').style.display='none'; updateUserUI(loginData.user); }
-  }
-  function updateUserUI(user) {
-    const name = user.user_metadata?.full_name || user.email.split('@')[0];
-    const bottom = document.getElementById('userBottom');
-    if (bottom) { bottom.style.display=''; document.getElementById('userName').textContent=name; document.getElementById('userAv').textContent=name.charAt(0).toUpperCase(); }
-  }
+  initPage({ requireAuth: true, onReady: loadPage });
 </script>
-
-
 </body>
 </html>

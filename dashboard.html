@@ -2,222 +2,198 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Admin — Trail Philou</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <title>Tableau de bord — Trail Philou</title>
+  <meta name="theme-color" content="#07090d" />
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css" />
   <style>
-    body { display: flex; }
-    .dash-sidebar {
-      position: fixed; top: 0; left: 0; bottom: 0;
-      width: var(--sidebar-w); background: var(--gray-900);
-      display: flex; flex-direction: column; z-index: 50; overflow-y: auto;
-    }
-    .dash-main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
-    .dash-topbar {
-      background: white; border-bottom: 1px solid var(--gray-200);
-      padding: 0 2rem; height: 58px;
-      display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 40;
-    }
-    .topbar-title { font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 800; color: var(--gray-900); }
-    .dash-content { padding: 2rem 2.5rem; }
-    .panel { display: none; }
+    .tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .panel { display: none; animation: slideUp 0.3s ease; }
     .panel.active { display: block; }
-    .save-bar { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--gray-100); }
-    .preview-photo { width: 100px; height: 100px; border-radius: var(--r-md); object-fit: cover; border: 2px solid var(--gray-200); }
-    .file-input-wrap { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .save-bar { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.4rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+    .photo-row { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+    .preview-photo { width: 110px; height: 110px; border-radius: var(--r-md); object-fit: cover; border: 1px solid var(--border-2); background: var(--surface-2); }
+    .thumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); background: var(--surface-2); display: grid; place-items: center; font-size: 1.1rem; }
+    .media-manager { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.3rem; }
+    .media-tile { position: relative; width: 78px; height: 78px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-2); background: var(--surface-2); display: grid; place-items: center; font-size: 0.72rem; color: var(--muted); text-align: center; transition: opacity 0.2s; }
+    .media-tile img { width: 100%; height: 100%; object-fit: cover; }
+    .media-tile button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(255,84,112,0.9); color: white; cursor: pointer; font-size: 0.65rem; display: grid; place-items: center; }
+    .media-tile.removed { opacity: 0.25; }
+    .media-tile.removed button { background: var(--surface-3); }
+    .gate { max-width: 460px; margin: 4rem auto; text-align: center; }
+    .gate .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .gate h2 { font-family: var(--font-display); font-size: 1.6rem; margin-bottom: 0.5rem; }
+    .gate p { color: var(--muted); margin-bottom: 1.5rem; }
+    .hint-box { background: var(--accent-soft); border: 1px solid rgba(255,106,43,0.25); border-radius: var(--r-md); padding: 0.85rem 1rem; font-size: 0.84rem; color: var(--muted); line-height: 1.55; margin-bottom: 1.25rem; }
+    .hint-box b { color: var(--accent-2); }
+    .modal-section { grid-column: 1 / -1; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--dim); margin-top: 0.6rem; padding-top: 1rem; border-top: 1px solid var(--border); }
   </style>
 </head>
-<body>
+<body data-page="admin">
 
-<div id="authCheck" style="position:fixed;inset:0;background:white;display:flex;align-items:center;justify-content:center;z-index:999;font-size:2rem;">🔄</div>
-
-<!-- ─── SIDEBAR ADMIN ─── -->
-<aside class="dash-sidebar">
-  <div class="sidebar-logo">
-    <div class="logo">ADMIN</div>
-    <div class="logo-sub">Trail Philou</div>
+<main class="main">
+  <div class="page-header">
+    <div class="page-eyebrow">⚙️ Administration</div>
+    <h1 class="page-title">Tableau de bord</h1>
+    <p class="page-sub">Modifie le contenu du site : accueil, statistiques, courses et matériel.</p>
   </div>
-  <nav class="sidebar-nav">
-    <div class="sidebar-section">Pages</div>
-    <button class="nav-link active" data-panel="accueil"><span class="ni">🏠</span> Page d'accueil</button>
-    <button class="nav-link" data-panel="stats"><span class="ni">📊</span> Statistiques</button>
-    <button class="nav-link" data-panel="past"><span class="ni">🏆</span> Courses terminées</button>
-    <button class="nav-link" data-panel="upcoming"><span class="ni">🗓️</span> Prochaines courses</button>
-    <button class="nav-link" data-panel="materiel"><span class="ni">🎒</span> Mon matériel</button>
-    <div style="flex:1"></div>
-    <div class="sidebar-section">Accès rapide</div>
-    <a href="index.html" target="_blank" class="nav-link"><span class="ni">🌐</span> Voir le site</a>
-  </nav>
-  <div class="sidebar-bottom">
-    <div class="user-pill">
-      <div class="user-avatar" id="sidebarAv">A</div>
-      <div class="user-name" id="sidebarName">Admin</div>
-      <button class="btn-logout" id="btnLogout" title="Déconnexion">⎋</button>
+  <div class="page-content" id="dash" style="display:none">
+    <div class="tabs" id="tabs">
+      <button class="chip active" data-panel="accueil">🏠 Accueil</button>
+      <button class="chip" data-panel="stats">📊 Statistiques</button>
+      <button class="chip" data-panel="past">🏆 Courses terminées</button>
+      <button class="chip" data-panel="upcoming">🗓️ Prochaines courses</button>
+      <button class="chip" data-panel="materiel">🎒 Matériel</button>
     </div>
-  </div>
-</aside>
-
-<!-- ─── MAIN ─── -->
-<div class="dash-main">
-  <div class="dash-topbar">
-    <div class="topbar-title" id="topbarTitle">Page d'accueil</div>
-    <div id="topbarAction"></div>
-  </div>
-  <div class="dash-content">
 
     <!-- ── ACCUEIL ── -->
-    <div class="panel active" id="panel-accueil">
+    <section class="panel active" id="panel-accueil">
       <div class="card">
-        <div class="card-header"><div class="card-title">Contenu de la page d'accueil</div></div>
+        <div class="card-header"><div class="card-title">Contenu de la page d'accueil</div><a class="btn btn-outline btn-sm" href="index.html" target="_blank">👁️ Voir</a></div>
         <div class="card-body">
           <div class="form-grid">
             <div class="form-group full">
-              <label class="form-label">Titre principal (HTML accepté, ex: Courir plus loin,&lt;br&gt;toujours plus haut)</label>
-              <input class="form-input" id="pfHeroTitle" placeholder="Courir plus loin,&lt;br&gt;toujours plus haut" />
+              <label class="form-label" for="pfHeroTitle">Titre principal</label>
+              <input class="form-input" id="pfHeroTitle" placeholder="Courir plus loin,<br>toujours plus haut" />
+              <div class="form-hint">Mets &lt;br&gt; pour aller à la ligne : la dernière ligne s'affiche en dégradé orange.</div>
             </div>
             <div class="form-group full">
-              <label class="form-label">Présentation / Bio</label>
-              <textarea class="form-textarea" id="pfBio" rows="5" placeholder="Parlez de vous, votre passion pour le trail…"></textarea>
+              <label class="form-label" for="pfBio">Présentation</label>
+              <textarea class="form-textarea" id="pfBio" rows="5" placeholder="Parle de toi, de ta passion pour le trail…"></textarea>
             </div>
             <div class="form-group full">
               <label class="form-label">Photo de profil</label>
-              <div class="file-input-wrap">
-                <img id="pfPhotoPreview" class="preview-photo" src="" alt="" style="display:none" />
+              <div class="photo-row">
+                <img id="pfPhotoPreview" class="preview-photo" alt="" style="display:none" />
                 <div>
-                  <input type="file" id="pfPhotoFile" accept="image/*" style="display:none" />
-                  <button class="btn btn-outline" onclick="document.getElementById('pfPhotoFile').click()">📷 Choisir une photo</button>
-                  <div class="form-hint" style="margin-top:0.3rem">JPG, PNG, WebP · Max 5 MB</div>
+                  <input type="file" id="pfPhotoFile" accept="image/*" />
+                  <div class="form-hint" style="margin-top:0.4rem">JPG, PNG ou WebP · 10 Mo max</div>
                 </div>
               </div>
             </div>
           </div>
-          <div class="save-bar">
-            <button class="btn btn-primary" id="btnSaveAccueil">💾 Enregistrer</button>
-          </div>
+          <div class="save-bar"><button class="btn btn-primary" id="btnSaveAccueil">💾 Enregistrer</button></div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ── STATS ── -->
-    <div class="panel" id="panel-stats">
+    <section class="panel" id="panel-stats">
       <div class="card">
         <div class="card-header"><div class="card-title">Statistiques affichées sur le site</div></div>
         <div class="card-body">
+          <div class="hint-box">Ces totaux couvrent <b>toute ta carrière</b> (pas seulement les courses détaillées). Laisse un champ à 0 pour qu'il soit calculé automatiquement à partir de tes courses terminées.</div>
           <div class="form-grid">
-            <div class="form-group"><label class="form-label">Courses terminées</label><input class="form-input" type="number" id="stRaces" /></div>
-            <div class="form-group"><label class="form-label">Courses non finies (DNF)</label><input class="form-input" type="number" id="stDnf" /></div>
-            <div class="form-group"><label class="form-label">Courses au total</label><input class="form-input" type="number" id="stTotal" readonly style="background:var(--gray-50);color:var(--gray-400)" placeholder="Calculé automatiquement" /></div>
-            <div class="form-group"><label class="form-label">Années de pratique</label><input class="form-input" type="number" id="stYears" /></div>
+            <div class="form-group"><label class="form-label" for="stRaces">Courses finies</label><input class="form-input" type="number" min="0" id="stRaces" /></div>
+            <div class="form-group"><label class="form-label" for="stDnf">Abandons (DNF)</label><input class="form-input" type="number" min="0" id="stDnf" /></div>
+            <div class="form-group"><label class="form-label" for="stKm">Kilomètres en course</label><input class="form-input" type="number" min="0" id="stKm" /></div>
+            <div class="form-group"><label class="form-label" for="stDplus">Mètres de D+</label><input class="form-input" type="number" min="0" id="stDplus" /></div>
+            <div class="form-group"><label class="form-label" for="stYears">Années de pratique</label><input class="form-input" type="number" min="0" id="stYears" /></div>
+            <div class="form-group"><label class="form-label" for="stTotal">Départs au total</label><input class="form-input" type="number" id="stTotal" readonly placeholder="Calculé automatiquement" /></div>
           </div>
           <div class="save-bar"><button class="btn btn-primary" id="btnSaveStats">💾 Enregistrer</button></div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ── COURSES TERMINÉES ── -->
-    <div class="panel" id="panel-past">
+    <section class="panel" id="panel-past">
       <div class="card">
         <div class="card-header">
           <div class="card-title">Courses terminées</div>
-          <button class="btn btn-primary btn-sm" id="btnAddPast">+ Ajouter une course</button>
+          <button class="btn btn-primary btn-sm" onclick="openRaceModal('past')">+ Ajouter une course</button>
         </div>
-        <div class="card-body" style="padding:0">
-          <div class="table-wrap">
-            <table><thead><tr><th>Course</th><th>Date</th><th>Temps</th><th>Classement</th><th>Vidéos</th><th>Actions</th></tr></thead>
-            <tbody id="pastTable"><tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:2rem">Chargement…</td></tr></tbody>
-            </table>
-          </div>
+        <div class="table-wrap">
+          <table><thead><tr><th></th><th>Course</th><th>Date</th><th>Temps</th><th>Classement</th><th>Médias</th><th></th></tr></thead>
+          <tbody id="pastTable"><tr><td colspan="7" class="td-empty">Chargement…</td></tr></tbody></table>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ── PROCHAINES COURSES ── -->
-    <div class="panel" id="panel-upcoming">
+    <section class="panel" id="panel-upcoming">
       <div class="card">
         <div class="card-header">
           <div class="card-title">Prochaines courses</div>
-          <button class="btn btn-primary btn-sm" id="btnAddUpcoming">+ Ajouter une course</button>
+          <button class="btn btn-primary btn-sm" onclick="openRaceModal('upcoming')">+ Ajouter une course</button>
         </div>
-        <div class="card-body" style="padding:0">
-          <div class="table-wrap">
-            <table><thead><tr><th>Course</th><th>Date</th><th>Lieu</th><th>Distance</th><th>Statut</th><th>Image</th><th>Actions</th></tr></thead>
-            <tbody id="upcomingTable"><tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:2rem">Chargement…</td></tr></tbody>
-            </table>
-          </div>
+        <div class="table-wrap">
+          <table><thead><tr><th></th><th>Course</th><th>Date</th><th>Lieu</th><th>Distance</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="upcomingTable"><tr><td colspan="7" class="td-empty">Chargement…</td></tr></tbody></table>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ── MATÉRIEL ── -->
-    <div class="panel" id="panel-materiel">
+    <section class="panel" id="panel-materiel">
       <div class="card">
         <div class="card-header">
           <div class="card-title">Mon matériel</div>
-          <button class="btn btn-primary btn-sm" id="btnAddMat">+ Ajouter un équipement</button>
+          <button class="btn btn-primary btn-sm" onclick="openMatModal()">+ Ajouter un équipement</button>
         </div>
-        <div class="card-body" style="padding:0">
-          <div class="table-wrap">
-            <table><thead><tr><th>Nom</th><th>Catégorie</th><th>Marque</th><th>Image</th><th>Actions</th></tr></thead>
-            <tbody id="matTable"><tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:2rem">Chargement…</td></tr></tbody>
-            </table>
-          </div>
+        <div class="table-wrap">
+          <table><thead><tr><th></th><th>Nom</th><th>Catégorie</th><th>Marque</th><th></th></tr></thead>
+          <tbody id="matTable"><tr><td colspan="5" class="td-empty">Chargement…</td></tr></tbody></table>
         </div>
       </div>
-    </div>
+    </section>
+  </div>
 
-  </div><!-- /dash-content -->
-</div><!-- /dash-main -->
+  <div class="page-content" id="gate" style="display:none">
+    <div class="gate">
+      <div class="empty-icon">🔒</div>
+      <h2>Accès réservé</h2>
+      <p>Cette page est réservée à l'administrateur du site.</p>
+      <a href="index.html" class="btn btn-primary">← Retour à l'accueil</a>
+    </div>
+  </div>
+</main>
 
 <!-- ─── MODAL COURSE ─── -->
 <div class="modal-overlay" id="raceModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true">
     <div class="modal-title" id="raceModalTitle">Ajouter une course</div>
-    <input type="hidden" id="raceId" />
-    <input type="hidden" id="raceKind" />
     <div class="form-grid">
-      <div class="form-group full"><label class="form-label">Nom *</label><input class="form-input" id="rName" placeholder="UTMB, Maxi Race…" /></div>
-      <div class="form-group"><label class="form-label">Date *</label><input class="form-input" type="date" id="rDate" /></div>
-      <div class="form-group"><label class="form-label">Lieu</label><input class="form-input" id="rLocation" placeholder="Chamonix, France" /></div>
-      <div class="form-group"><label class="form-label">Distance (km)</label><input class="form-input" type="number" id="rDistance" /></div>
-      <div class="form-group"><label class="form-label">Dénivelé+ (m)</label><input class="form-input" type="number" id="rDplus" /></div>
-      <div class="form-group"><label class="form-label">Type</label>
+      <div class="form-group full"><label class="form-label" for="rName">Nom *</label><input class="form-input" id="rName" placeholder="UTMB, Maxi Race…" /></div>
+      <div class="form-group"><label class="form-label" for="rDate">Date *</label><input class="form-input" type="date" id="rDate" /></div>
+      <div class="form-group"><label class="form-label" for="rLocation">Lieu</label><input class="form-input" id="rLocation" placeholder="Chamonix, France" /></div>
+      <div class="form-group"><label class="form-label" for="rDistance">Distance (km)</label><input class="form-input" type="number" step="0.1" min="0" id="rDistance" /></div>
+      <div class="form-group"><label class="form-label" for="rDplus">Dénivelé + (m)</label><input class="form-input" type="number" min="0" id="rDplus" /></div>
+      <div class="form-group"><label class="form-label" for="rType">Type</label>
         <select class="form-select" id="rType"><option value="trail">Trail</option><option value="ultra">Ultra</option><option value="sky">Skyrace</option><option value="route">Route</option></select>
       </div>
-      <!-- Upcoming only -->
-      <div class="form-group upcoming-field"><label class="form-label">Statut</label>
+      <div class="form-group upcoming-field"><label class="form-label" for="rStatus">Statut</label>
         <select class="form-select" id="rStatus"><option value="objectif">🎯 Objectif</option><option value="inscrit">✅ Inscrit</option><option value="selection">⚡ En sélection</option></select>
       </div>
-      <div class="form-group upcoming-field"><label class="form-label">Image principale (carte)</label>
+      <div class="form-group past-field"><label class="form-label" for="rTime">Temps</label><input class="form-input" id="rTime" placeholder="12h34'56" /></div>
+      <div class="form-group past-field"><label class="form-label" for="rRank">Classement</label><input class="form-input" id="rRank" placeholder="23ème / 450" /></div>
+      <div class="form-group full"><label class="form-label" for="rNotes">Notes / récit</label><textarea class="form-textarea" id="rNotes" rows="3"></textarea></div>
+
+      <div class="modal-section">Médias</div>
+      <div class="form-group full">
+        <label class="form-label" for="rImgFile">Image de couverture</label>
         <input type="file" id="rImgFile" accept="image/*" />
-        <div class="form-hint">Image affichée sur la carte</div>
+        <div class="form-hint" id="rCoverHint">Affichée en haut de la carte. Sans couverture, la 1re photo est utilisée.</div>
       </div>
-      <!-- Past only -->
-      <div class="form-group past-field" style="display:none"><label class="form-label">Temps (ex: 12h34')</label><input class="form-input" id="rTime" /></div>
-      <div class="form-group past-field" style="display:none"><label class="form-label">Classement (ex: 23ème/450)</label><input class="form-input" id="rRank" /></div>
-      <!-- Commun : photos + vidéos -->
       <div class="form-group full">
-        <label class="form-label">📸 Photos (plusieurs possibles)</label>
+        <label class="form-label" for="rImgFiles">📸 Ajouter des photos</label>
         <input type="file" id="rImgFiles" accept="image/*" multiple />
-        <div class="form-hint">JPG, PNG, WebP</div>
-        <div id="rImgExisting" style="margin-top:0.4rem;font-size:0.78rem;color:var(--gray-400)"></div>
       </div>
       <div class="form-group full">
-        <label class="form-label">🎬 Vidéos (plusieurs possibles)</label>
+        <label class="form-label" for="rVidFiles">🎬 Ajouter des vidéos</label>
         <input type="file" id="rVidFiles" accept="video/*" multiple />
-        <div class="form-hint">MP4, MOV</div>
-        <div id="rVidExisting" style="margin-top:0.4rem;font-size:0.78rem;color:var(--gray-400)"></div>
+        <div class="form-hint">MP4 ou MOV · 50 Mo max par fichier</div>
       </div>
-      <!-- Gérer médias existants -->
       <div class="form-group full" id="mediaManagerWrap" style="display:none">
-        <label class="form-label">🗑️ Supprimer des médias existants</label>
-        <div id="mediaManager" style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.4rem"></div>
+        <label class="form-label">Médias existants <span style="color:var(--dim);font-weight:500">· clique sur ✕ pour retirer</span></label>
+        <div class="media-manager" id="mediaManager"></div>
       </div>
-      <div class="form-group full"><label class="form-label">Notes</label><textarea class="form-textarea" id="rNotes" rows="2"></textarea></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" id="raceModalClose">Annuler</button>
+      <button class="btn btn-outline" data-close="raceModal">Annuler</button>
       <button class="btn btn-primary" id="raceModalSave">💾 Enregistrer</button>
     </div>
   </div>
@@ -225,402 +201,360 @@
 
 <!-- ─── MODAL MATÉRIEL ─── -->
 <div class="modal-overlay" id="matModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true">
     <div class="modal-title" id="matModalTitle">Ajouter un équipement</div>
-    <input type="hidden" id="matId" />
     <div class="form-grid">
-      <div class="form-group full"><label class="form-label">Nom *</label><input class="form-input" id="mNom" placeholder="Vest Salomon Advanced Skin 12" /></div>
-      <div class="form-group"><label class="form-label">Catégorie</label>
+      <div class="form-group full"><label class="form-label" for="mNom">Nom *</label><input class="form-input" id="mNom" placeholder="Salomon Advanced Skin 12" /></div>
+      <div class="form-group"><label class="form-label" for="mCat">Catégorie</label>
         <select class="form-select" id="mCat">
-          <option>Chaussures</option><option>Vêtements</option><option>Sac & Hydratation</option>
+          <option>Chaussures</option><option>Vêtements</option><option>Sac &amp; Hydratation</option>
           <option>Nutrition</option><option>Électronique</option><option>Accessoires</option><option>Autre</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Marque</label><input class="form-input" id="mMarque" placeholder="Salomon, Hoka, Garmin…" /></div>
-      <div class="form-group full"><label class="form-label">Description</label><textarea class="form-textarea" id="mDesc" rows="2" placeholder="Pourquoi vous l'utilisez, depuis quand…"></textarea></div>
-      <div class="form-group full"><label class="form-label">Mon avis</label><input class="form-input" id="mAvis" placeholder="Excellent pour les longues distances…" /></div>
-      <div class="form-group full"><label class="form-label">Photo</label>
-        <input type="file" id="mImgFile" accept="image/*" />
-        <div id="mImgPreview" style="margin-top:0.5rem"></div>
+      <div class="form-group"><label class="form-label" for="mMarque">Marque</label><input class="form-input" id="mMarque" placeholder="Salomon, Hoka, Garmin…" /></div>
+      <div class="form-group full"><label class="form-label" for="mDesc">Description</label><textarea class="form-textarea" id="mDesc" rows="3" placeholder="Pourquoi tu l'utilises, depuis quand…"></textarea></div>
+      <div class="form-group full"><label class="form-label" for="mAvis">Mon avis</label><input class="form-input" id="mAvis" placeholder="Parfait sur les longues distances…" /></div>
+      <div class="form-group full"><label class="form-label" for="mImgFile">Photo</label>
+        <div class="photo-row">
+          <img id="mImgPreview" class="preview-photo" alt="" style="display:none" />
+          <input type="file" id="mImgFile" accept="image/*" />
+        </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" id="matModalClose">Annuler</button>
+      <button class="btn btn-outline" data-close="matModal">Annuler</button>
       <button class="btn btn-primary" id="matModalSave">💾 Enregistrer</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
 <script src="shared.js"></script>
 <script>
+  const $ = id => document.getElementById(id);
+  const MAX_IMG = 10 * 1024 * 1024, MAX_VID = 50 * 1024 * 1024;
   let currentPanel = 'accueil';
-  let currentUser = null;
+  let raceCache = {};
 
-  // ─── AUTH ───
-  async function checkAuth() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; return; }
-    currentUser = session.user;
-    const { data: p } = await sb.from('profiles').select('role, full_name').eq('id', currentUser.id).single();
-    if (!p || p.role !== 'admin') { window.location.href = 'index.html'; return; }
-    const name = p.full_name || currentUser.email.split('@')[0];
-    document.getElementById('sidebarName').textContent = name;
-    document.getElementById('sidebarAv').textContent = name.charAt(0).toUpperCase();
-    document.getElementById('authCheck').style.display = 'none';
-    document.getElementById('authCheck').remove();
-    loadPanel('accueil');
+  // ─── ACCÈS ───
+  initPage({ requireAuth: true, onReady: () => {
+    if (!isAdmin()) { $('gate').style.display = ''; return; }
+    $('dash').style.display = '';
+    const start = location.hash.slice(1);
+    loadPanel($('panel-' + start) ? start : 'accueil');
+  }});
+
+  // ─── ONGLETS ───
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-panel]'); if (b) loadPanel(b.dataset.panel); });
+  function loadPanel(id) {
+    currentPanel = id;
+    history.replaceState(null, '', '#' + id);
+    document.querySelectorAll('#tabs .chip').forEach(b => b.classList.toggle('active', b.dataset.panel === id));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + id));
+    ({ accueil: loadAccueil, stats: loadStats, past: loadPastTable, upcoming: loadUpcomingTable, materiel: loadMatTable })[id]();
   }
 
-  // ─── NAV ───
-  document.querySelectorAll('.nav-link[data-panel]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      loadPanel(btn.dataset.panel);
+  // ─── MODALS ───
+  function openModal(id) { $(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeModal(id) { $(id).classList.remove('open'); document.body.style.overflow = ''; }
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+  document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('mousedown', e => { if (e.target === o) closeModal(o.id); }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(o => closeModal(o.id)); });
+
+  function previewFile(input, img) {
+    input.addEventListener('change', () => {
+      const f = input.files[0];
+      if (!f) return;
+      img.src = URL.createObjectURL(f); img.style.display = '';
     });
-  });
+  }
+  function checkSize(files, max, label) {
+    const big = [...files].find(f => f.size > max);
+    if (big) { toast(`« ${big.name} » dépasse ${max / 1024 / 1024} Mo (${label})`, 'error'); return false; }
+    return true;
+  }
 
-  const panelTitles = { accueil: 'Page d\'accueil', stats: 'Statistiques', past: 'Courses terminées', upcoming: 'Prochaines courses', materiel: 'Mon matériel' };
-
-  async function loadPanel(id) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-' + id)?.classList.add('active');
-    document.getElementById('topbarTitle').textContent = panelTitles[id] || id;
-    currentPanel = id;
-    if (id === 'accueil') loadAccueil();
-    else if (id === 'stats') loadStats();
-    else if (id === 'past') loadPastTable();
-    else if (id === 'upcoming') loadUpcomingTable();
-    else if (id === 'materiel') loadMatTable();
+  // Supprime des fichiers du Storage à partir de leurs URLs publiques (best effort)
+  async function removeStorageFiles(urls) {
+    const byBucket = {};
+    urls.filter(Boolean).forEach(u => {
+      const m = u.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/);
+      if (m) (byBucket[m[1]] = byBucket[m[1]] || []).push(decodeURIComponent(m[2]));
+    });
+    for (const [bucket, paths] of Object.entries(byBucket)) await sb.storage.from(bucket).remove(paths);
   }
 
   // ─── ACCUEIL ───
+  previewFile($('pfPhotoFile'), $('pfPhotoPreview'));
   async function loadAccueil() {
-    const { data: p } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-    if (p) {
-      document.getElementById('pfHeroTitle').value = p.hero_title || '';
-      document.getElementById('pfBio').value = p.bio || '';
-      if (p.photo_url) {
-        const preview = document.getElementById('pfPhotoPreview');
-        preview.src = p.photo_url; preview.style.display = '';
-      }
-    }
+    const { data: p } = await sb.from('profiles').select('hero_title, bio, photo_url').eq('id', currentUser.id).maybeSingle();
+    $('pfHeroTitle').value = p?.hero_title || '';
+    $('pfBio').value = p?.bio || '';
+    $('pfPhotoFile').value = '';
+    if (p?.photo_url) { $('pfPhotoPreview').src = p.photo_url; $('pfPhotoPreview').style.display = ''; }
   }
-
-  document.getElementById('pfPhotoFile').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => { const p = document.getElementById('pfPhotoPreview'); p.src = ev.target.result; p.style.display = ''; };
-    reader.readAsDataURL(file);
-  });
-
-  document.getElementById('btnSaveAccueil').addEventListener('click', async () => {
-    const btn = document.getElementById('btnSaveAccueil');
-    btn.disabled = true; btn.textContent = 'Enregistrement…';
-    let photo_url = null;
-    const file = document.getElementById('pfPhotoFile').files[0];
-    if (file) {
-      try { photo_url = await uploadImage(file, 'images', 'profile'); }
-      catch (e) { toast('Erreur upload photo : ' + e.message, 'error'); btn.disabled = false; btn.textContent = '💾 Enregistrer'; return; }
-    }
-    const payload = { id: currentUser.id, hero_title: document.getElementById('pfHeroTitle').value, bio: document.getElementById('pfBio').value, role: 'admin' };
-    if (photo_url) payload.photo_url = photo_url;
-    const { error } = await sb.from('profiles').upsert(payload);
-    btn.disabled = false; btn.textContent = '💾 Enregistrer';
-    if (error) return toast('Erreur : ' + error.message, 'error');
-    toast('Page d\'accueil mise à jour ✅');
+  $('btnSaveAccueil').addEventListener('click', async () => {
+    const btn = $('btnSaveAccueil');
+    const file = $('pfPhotoFile').files[0];
+    if (file && !checkSize([file], MAX_IMG, 'image')) return;
+    busy(btn, true, 'Enregistrement…');
+    const payload = { hero_title: $('pfHeroTitle').value.trim(), bio: $('pfBio').value.trim() };
+    try {
+      if (file) payload.photo_url = await uploadImage(file, 'profile');
+      const { error } = await sb.from('profiles').update(payload).eq('id', currentUser.id);
+      if (error) throw error;
+      toast('Page d\'accueil mise à jour ✅');
+      $('pfPhotoFile').value = '';
+    } catch (e) { toast('Erreur : ' + e.message, 'error'); }
+    busy(btn, false);
   });
 
   // ─── STATS ───
+  let statsId = null;
+  const updateTotal = () => $('stTotal').value = (+$('stRaces').value || 0) + (+$('stDnf').value || 0);
+  $('stRaces').addEventListener('input', updateTotal);
+  $('stDnf').addEventListener('input', updateTotal);
   async function loadStats() {
-    const { data: s } = await sb.from('stats').select('*').single();
-    if (s) { document.getElementById('stRaces').value = s.total_races || ''; document.getElementById('stDnf').value = s.total_dnf || ''; document.getElementById('stTotal').value = (s.total_races||0)+(s.total_dnf||0); document.getElementById('stYears').value = s.years_running || ''; updateTotal(); }
+    const { data: s } = await sb.from('stats').select('*').order('id').limit(1).maybeSingle();
+    statsId = s?.id || null;
+    $('stRaces').value = s?.total_races ?? 0;
+    $('stDnf').value = s?.total_dnf ?? 0;
+    $('stKm').value = s?.total_km ?? 0;
+    $('stDplus').value = s?.total_dplus ?? 0;
+    $('stYears').value = s?.years_running ?? 0;
+    updateTotal();
   }
-  document.getElementById('btnSaveStats').addEventListener('click', async () => {
-    const payload = { total_races: +document.getElementById('stRaces').value||0, total_dnf: +document.getElementById('stDnf').value||0, years_running: +document.getElementById('stYears').value||0 };
-    const { data: ex } = await sb.from('stats').select('id').single();
-    let error;
-    if (ex?.id) ({ error } = await sb.from('stats').update(payload).eq('id', ex.id));
-    else ({ error } = await sb.from('stats').insert(payload));
+  $('btnSaveStats').addEventListener('click', async () => {
+    const btn = $('btnSaveStats');
+    const n = id => Math.max(0, parseInt($(id).value, 10) || 0);
+    const payload = { total_races: n('stRaces'), total_dnf: n('stDnf'), total_km: n('stKm'), total_dplus: n('stDplus'), years_running: n('stYears'), updated_at: new Date().toISOString() };
+    busy(btn, true, 'Enregistrement…');
+    const { data, error } = statsId
+      ? await sb.from('stats').update(payload).eq('id', statsId).select('id').single()
+      : await sb.from('stats').insert(payload).select('id').single();
+    busy(btn, false);
     if (error) return toast('Erreur : ' + error.message, 'error');
+    statsId = data.id;
     toast('Statistiques enregistrées ✅');
   });
 
-  // ─── PAST TABLE ───
-  async function loadPastTable() {
-    const { data: races } = await sb.from('races').select('*').eq('type','past').order('date',{ascending:false});
-    const tbody = document.getElementById('pastTable');
-    if (!races?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:2rem">Aucune course — ajoutez-en une !</td></tr>'; return; }
-    tbody.innerHTML = races.map(r => `<tr>
-      <td><strong>${r.name}</strong></td>
-      <td>${fmtDate(r.date)}</td>
-      <td>${r.finish_time||'—'}</td>
-      <td>${r.rank||'—'}</td>
-      <td>${r.videos?.length ? `🎬 ${r.videos.length}` : '—'}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-sm" onclick="openRaceModal('past','${r.id}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteRace('${r.id}')">🗑️</button>
-      </td>
-    </tr>`).join('');
+  // ─── TABLES COURSES ───
+  const thumb = r => { const c = r.image_url || toArr(r.images)[0]; return c ? `<img class="thumb" src="${esc(c)}" alt="" loading="lazy" />` : `<div class="thumb">🏔️</div>`; };
+  const actions = (kind, r, extra = '') => `<td class="td-actions">${extra}
+      <button class="btn btn-outline btn-sm btn-icon" title="Modifier" onclick="openRaceModal('${kind}','${r.id}')">✏️</button>
+      <button class="btn btn-danger btn-sm btn-icon" title="Supprimer" onclick="deleteRace('${r.id}')">🗑️</button></td>`;
+
+  async function fetchRaces(type, asc) {
+    const { data, error } = await sb.from('races').select('*').eq('type', type).order('date', { ascending: asc });
+    if (error) toast('Erreur : ' + error.message, 'error');
+    (data || []).forEach(r => raceCache[r.id] = r);
+    return data || [];
   }
 
-  // ─── UPCOMING TABLE ───
+  async function loadPastTable() {
+    const races = await fetchRaces('past', false);
+    $('pastTable').innerHTML = races.length ? races.map(r => {
+      const ni = toArr(r.images).length, nv = toArr(r.videos).length;
+      return `<tr>
+        <td style="width:60px">${thumb(r)}</td>
+        <td><strong>${esc(r.name)}</strong><div style="font-size:.78rem;color:var(--dim)">${esc(r.location || '')}</div></td>
+        <td style="white-space:nowrap">${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+        <td>${esc(r.finish_time || '—')}</td>
+        <td>${esc(r.rank || '—')}</td>
+        <td style="white-space:nowrap">${ni ? `🖼️ ${ni}` : ''} ${nv ? `🎬 ${nv}` : ''}${!ni && !nv ? '—' : ''}</td>
+        ${actions('past', r)}
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" class="td-empty">Aucune course — ajoutes-en une !</td></tr>';
+  }
+
   async function loadUpcomingTable() {
-    const { data: races } = await sb.from('races').select('*').eq('type','upcoming').order('date',{ascending:true});
-    const tbody = document.getElementById('upcomingTable');
-    if (!races?.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:2rem">Aucune course — ajoutez-en une !</td></tr>'; return; }
-    tbody.innerHTML = races.map(r => `<tr>
-      <td><strong>${r.name}</strong></td>
-      <td>${fmtDate(r.date)}</td>
-      <td>${r.location||'—'}</td>
-      <td>${r.distance ? r.distance+' km' : '—'}</td>
-      <td><span class="badge badge-blue">${r.status||'objectif'}</span></td>
-      <td>${r.image_url ? '🖼️ Oui' : '—'}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-sm" onclick="openRaceModal('upcoming','${r.id}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteRace('${r.id}')">🗑️</button>
-      </td>
-    </tr>`).join('');
+    const races = await fetchRaces('upcoming', true);
+    $('upcomingTable').innerHTML = races.length ? races.map(r => {
+      const st = STATUS[r.status] || STATUS.objectif;
+      const passed = daysUntil(r.date) < 0;
+      const finishBtn = `<button class="btn btn-outline btn-sm" title="Saisir le résultat et la déplacer dans « Courses terminées »" onclick="openRaceModal('past','${r.id}')">🏁 Terminée</button>`;
+      return `<tr>
+        <td style="width:60px">${thumb(r)}</td>
+        <td><strong>${esc(r.name)}</strong></td>
+        <td style="white-space:nowrap">${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}${passed ? '<div style="font-size:.72rem;color:var(--accent-2)">Date passée</div>' : ''}</td>
+        <td>${esc(r.location || '—')}</td>
+        <td>${r.distance ? esc(r.distance) + ' km' : '—'}</td>
+        <td><span class="badge ${st.cls}">${st.label}</span></td>
+        ${actions('upcoming', r, finishBtn)}
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" class="td-empty">Aucune course — ajoutes-en une !</td></tr>';
   }
 
   // ─── MODAL COURSE ───
-  document.getElementById('btnAddPast').addEventListener('click', () => openRaceModal('past'));
-  document.getElementById('btnAddUpcoming').addEventListener('click', () => openRaceModal('upcoming'));
-  document.getElementById('raceModalClose').addEventListener('click', () => document.getElementById('raceModal').classList.remove('open'));
+  let editing = null;   // { kind, id, images, videos, image_url }
+  let removed = new Set();
 
-  async function openRaceModal(kind, id = null) {
-    document.getElementById('raceKind').value = kind;
-    document.getElementById('raceId').value = id || '';
-    document.getElementById('raceModalTitle').textContent = id ? 'Modifier la course' : 'Ajouter une course';
-    document.querySelectorAll('.upcoming-field').forEach(el => el.style.display = kind==='upcoming' ? '' : 'none');
-    document.querySelectorAll('.past-field').forEach(el => el.style.display = kind==='past' ? '' : 'none');
-    ['rName','rDate','rLocation','rDistance','rDplus','rTime','rRank','rNotes'].forEach(i => document.getElementById(i).value = '');
-    document.getElementById('rVidExisting').innerHTML = '';
-    document.getElementById('rImgExisting').innerHTML = '';
-    document.getElementById('mediaManagerWrap').style.display = 'none';
-    document.getElementById('mediaManager').innerHTML = '';
-    removedImgs = []; removedVids = [];
-    if (id) {
-      const { data: r } = await sb.from('races').select('*').eq('id',id).single();
-      if (r) {
-        document.getElementById('rName').value = r.name||'';
-        document.getElementById('rDate').value = r.date||'';
-        document.getElementById('rLocation').value = r.location||'';
-        document.getElementById('rDistance').value = r.distance||'';
-        document.getElementById('rDplus').value = r.dplus||'';
-        document.getElementById('rType').value = r.race_type||'trail';
-        document.getElementById('rStatus').value = r.status||'objectif';
-        document.getElementById('rTime').value = r.finish_time||'';
-        document.getElementById('rRank').value = r.rank||'';
-        document.getElementById('rNotes').value = r.notes||'';
-        // Media manager
-        const allImgs = Array.isArray(r.images) ? r.images : [];
-        const allVids = Array.isArray(r.videos) ? r.videos : [];
-        if (allImgs.length || allVids.length) {
-          document.getElementById('mediaManagerWrap').style.display = '';
-          let html = '';
-          allImgs.forEach((url, i) => {
-            html += `<div data-media-type="img" data-media-index="${i}" style="position:relative;display:inline-block">
-              <img src="${url}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--gray-200)" />
-              <button onclick="removeMedia('img',${i})" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:0.65rem;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
-            </div>`;
-          });
-          allVids.forEach((url, i) => {
-            html += `<div data-media-type="vid" data-media-index="${i}" style="position:relative;display:inline-flex;align-items:center;gap:0.3rem;background:var(--gray-100);border-radius:8px;padding:0.4rem 0.6rem;font-size:0.75rem;color:var(--gray-600)">
-              🎬 Vidéo ${i+1}
-              <button onclick="removeMedia('vid',${i})" style="background:#ef4444;color:white;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:0.6rem;margin-left:0.25rem">✕</button>
-            </div>`;
-          });
-          document.getElementById('mediaManager').innerHTML = html;
-          if (allImgs.length) document.getElementById('rImgExisting').textContent = allImgs.length + ' photo(s) existante(s) · voir ci-dessous';
-          if (allVids.length) document.getElementById('rVidExisting').textContent = allVids.length + ' vidéo(s) existante(s) · voir ci-dessous';
-        } else {
-          document.getElementById('mediaManagerWrap').style.display = 'none';
-        }
-      }
-    }
-    document.getElementById('raceModal').classList.add('open');
+  function openRaceModal(kind, id = null) {
+    const r = id ? raceCache[id] : null;
+    editing = { kind, id, images: toArr(r?.images), videos: toArr(r?.videos), image_url: r?.image_url || null };
+    removed = new Set();
+    const moving = r && r.type !== kind;
+    $('raceModalTitle').textContent = moving ? '🏁 Saisir le résultat' : id ? 'Modifier la course' : 'Ajouter une course';
+    document.querySelectorAll('.upcoming-field').forEach(el => el.style.display = kind === 'upcoming' ? '' : 'none');
+    document.querySelectorAll('.past-field').forEach(el => el.style.display = kind === 'past' ? '' : 'none');
+
+    $('rName').value = r?.name || '';
+    $('rDate').value = r?.date || '';
+    $('rLocation').value = r?.location || '';
+    $('rDistance').value = r?.distance ?? '';
+    $('rDplus').value = r?.dplus ?? '';
+    $('rType').value = r?.race_type || 'trail';
+    $('rStatus').value = r?.status || 'objectif';
+    $('rTime').value = r?.finish_time || '';
+    $('rRank').value = r?.rank || '';
+    $('rNotes').value = r?.notes || '';
+    ['rImgFile', 'rImgFiles', 'rVidFiles'].forEach(i => $(i).value = '');
+    renderMediaManager();
+    openModal('raceModal');
+    setTimeout(() => $(moving ? 'rTime' : 'rName').focus(), 50);
   }
 
-  document.getElementById('raceModalSave').addEventListener('click', async () => {
-    const kind = document.getElementById('raceKind').value;
-    const raceId = document.getElementById('raceId').value;
-    if (!document.getElementById('rName').value || !document.getElementById('rDate').value) return toast('Nom et date obligatoires', 'error');
-    const btn = document.getElementById('raceModalSave');
-    btn.disabled = true; btn.textContent = 'Enregistrement…';
+  function renderMediaManager() {
+    const tiles = [];
+    if (editing.image_url) tiles.push(['cover', editing.image_url, `<img src="${esc(editing.image_url)}" alt="" />`, 'Couverture']);
+    editing.images.forEach(u => tiles.push(['img', u, `<img src="${esc(u)}" alt="" loading="lazy" />`, 'Photo']));
+    editing.videos.forEach((u, i) => tiles.push(['vid', u, `🎬<br>Vidéo ${i + 1}`, 'Vidéo']));
+    $('mediaManagerWrap').style.display = tiles.length ? '' : 'none';
+    window._mediaTiles = tiles;
+    $('mediaManager').innerHTML = tiles.map(([, u, inner, title], i) =>
+      `<div class="media-tile${removed.has(u) ? ' removed' : ''}" title="${title}">${inner}<button type="button" onclick="toggleMedia(${i})">${removed.has(u) ? '↺' : '✕'}</button></div>`).join('');
+  }
+  function toggleMedia(i) {
+    const u = window._mediaTiles[i][1];
+    removed.has(u) ? removed.delete(u) : removed.add(u);
+    renderMediaManager();
+  }
 
-    // Upload image principale (upcoming)
-    let image_url = null;
-    const imgFileEl = document.getElementById('rImgFile');
-    const imgFile = imgFileEl ? imgFileEl.files[0] : null;
-    if (imgFile && kind==='upcoming') {
-      btn.textContent = 'Upload image…';
-      try { image_url = await uploadImage(imgFile, 'images', 'races'); } catch(e) { toast('Erreur image : '+e.message,'error'); btn.disabled=false;btn.textContent='💾 Enregistrer';return; }
-    }
+  $('raceModalSave').addEventListener('click', async () => {
+    const { kind, id } = editing;
+    const name = $('rName').value.trim(), date = $('rDate').value;
+    if (!name || !date) return toast('Le nom et la date sont obligatoires', 'error');
+    const cover = $('rImgFile').files[0];
+    const imgFiles = [...$('rImgFiles').files], vidFiles = [...$('rVidFiles').files];
+    if (!checkSize(cover ? [cover, ...imgFiles] : imgFiles, MAX_IMG, 'image') || !checkSize(vidFiles, MAX_VID, 'vidéo')) return;
 
-    // Upload photos multiples (past ET upcoming)
-    let images = [];
-    if (raceId) {
-      const { data: ex } = await sb.from('races').select('images').eq('id',raceId).single();
-      let exImgs = ex?.images || [];
-      if (typeof exImgs === 'string') {
-        try { exImgs = JSON.parse(exImgs); } catch(e) { exImgs = exImgs.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); }
-      }
-      images = exImgs.filter((_, i) => !removedImgs.includes(i));
-    }
-    const imgFilesEl = document.getElementById('rImgFiles');
-    const imgFiles = imgFilesEl ? imgFilesEl.files : [];
-    let uploadCount = 0;
-    for (const f of imgFiles) {
-      btn.textContent = `Upload photo ${++uploadCount}…`;
-      try { const url = await uploadImage(f, 'images', 'races'); images.push(url); } catch(e) { toast('Erreur photo : '+e.message,'error'); }
-    }
+    const btn = $('raceModalSave');
+    busy(btn, true, 'Enregistrement…');
+    try {
+      let image_url = removed.has(editing.image_url) ? null : editing.image_url;
+      if (cover) { btn.textContent = 'Envoi de la couverture…'; image_url = await uploadImage(cover, 'races'); }
+      const images = editing.images.filter(u => !removed.has(u));
+      const videos = editing.videos.filter(u => !removed.has(u));
+      for (const [i, f] of imgFiles.entries()) { btn.textContent = `Envoi photo ${i + 1}/${imgFiles.length}…`; images.push(await uploadImage(f, 'races')); }
+      for (const [i, f] of vidFiles.entries()) { btn.textContent = `Envoi vidéo ${i + 1}/${vidFiles.length}…`; videos.push(await uploadVideo(f, 'races')); }
 
-    // Upload vidéos (les deux types)
-    let videos = [];
-    if (raceId) {
-      const { data: ex } = await sb.from('races').select('videos').eq('id',raceId).single();
-      let exVids = ex?.videos || [];
-      if (typeof exVids === 'string') {
-        try { exVids = JSON.parse(exVids); } catch(e) { exVids = exVids.replace(/[{}"]/g,'').split(',').map(s=>s.trim()).filter(Boolean); }
-      }
-      videos = exVids.filter((_, i) => !removedVids.includes(i));
-    }
-    const vidFiles = document.getElementById('rVidFiles').files;
-    let vidCount = 0;
-    for (const vf of vidFiles) {
-      btn.textContent = `Upload vidéo ${++vidCount}…`;
-      try { const url = await uploadVideo(vf, 'races'); videos.push(url); } catch(e) { toast('Erreur vidéo : '+e.message,'error'); }
-    }
+      const payload = {
+        name, date, type: kind,
+        location: $('rLocation').value.trim() || null,
+        distance: parseFloat($('rDistance').value) || null,
+        dplus: parseInt($('rDplus').value, 10) || null,
+        race_type: $('rType').value,
+        notes: $('rNotes').value.trim() || null,
+        image_url, images, videos,
+        updated_at: new Date().toISOString(),
+      };
+      if (kind === 'upcoming') payload.status = $('rStatus').value;
+      else { payload.finish_time = $('rTime').value.trim() || null; payload.rank = $('rRank').value.trim() || null; }
 
-    const payload = {
-      name: document.getElementById('rName').value,
-      date: document.getElementById('rDate').value,
-      location: document.getElementById('rLocation').value,
-      distance: parseFloat(document.getElementById('rDistance').value)||null,
-      dplus: parseInt(document.getElementById('rDplus').value)||null,
-      race_type: document.getElementById('rType').value,
-      type: kind,
-      notes: document.getElementById('rNotes').value,
-      images: images,
-      videos: videos,
-    };
-    if (kind==='upcoming') { payload.status = document.getElementById('rStatus').value; if(image_url) payload.image_url = image_url; }
-    if (kind==='past') { payload.finish_time = document.getElementById('rTime').value; payload.rank = document.getElementById('rRank').value; }
+      btn.textContent = 'Enregistrement…';
+      const { error } = id ? await sb.from('races').update(payload).eq('id', id) : await sb.from('races').insert(payload);
+      if (error) throw error;
 
-    let error;
-    if (raceId) ({ error } = await sb.from('races').update(payload).eq('id',raceId));
-    else ({ error } = await sb.from('races').insert(payload));
-    btn.disabled=false; btn.textContent='💾 Enregistrer';
-    if (error) return toast('Erreur : '+error.message,'error');
-    toast('Course enregistrée ✅');
-    document.getElementById('raceModal').classList.remove('open');
-    kind==='past' ? loadPastTable() : loadUpcomingTable();
+      const toDelete = [...removed];
+      if (cover && editing.image_url && !removed.has(editing.image_url)) toDelete.push(editing.image_url);
+      removeStorageFiles(toDelete);
+
+      toast(id && raceCache[id]?.type !== kind ? 'Course déplacée dans « Courses terminées » 🏁' : 'Course enregistrée ✅');
+      closeModal('raceModal');
+      loadPanel(currentPanel);
+    } catch (e) {
+      toast('Erreur : ' + e.message, 'error');
+    }
+    busy(btn, false);
   });
 
   async function deleteRace(id) {
-    if (!confirm('Supprimer cette course ?')) return;
-    const { error } = await sb.from('races').delete().eq('id',id);
-    if (error) return toast('Erreur : '+error.message,'error');
-    toast('Supprimée ✅');
-    currentPanel==='past' ? loadPastTable() : loadUpcomingTable();
+    const r = raceCache[id];
+    if (!confirm(`Supprimer « ${r?.name || 'cette course'} » ? Ses photos et vidéos seront aussi supprimées.`)) return;
+    const { error } = await sb.from('races').delete().eq('id', id);
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    if (r) removeStorageFiles([r.image_url, ...toArr(r.images), ...toArr(r.videos)]);
+    toast('Course supprimée ✅');
+    loadPanel(currentPanel);
   }
 
-  // ─── MATÉRIEL TABLE ───
+  // ─── MATÉRIEL ───
+  let matCache = {};
+  previewFile($('mImgFile'), $('mImgPreview'));
   async function loadMatTable() {
-    const { data: items } = await sb.from('materiel').select('*').order('categorie');
-    const tbody = document.getElementById('matTable');
-    if (!items?.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:2rem">Aucun équipement — ajoutez-en un !</td></tr>'; return; }
-    tbody.innerHTML = items.map(i => `<tr>
-      <td><strong>${i.nom}</strong></td>
-      <td><span class="badge badge-blue">${i.categorie||'—'}</span></td>
-      <td>${i.marque||'—'}</td>
-      <td>${i.image_url ? '🖼️ Oui' : '—'}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-sm" onclick="openMatModal('${i.id}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteMat('${i.id}')">🗑️</button>
+    const { data, error } = await sb.from('materiel').select('*').order('categorie').order('nom');
+    if (error) toast('Erreur : ' + error.message, 'error');
+    const items = data || [];
+    matCache = Object.fromEntries(items.map(i => [i.id, i]));
+    $('matTable').innerHTML = items.length ? items.map(i => `<tr>
+      <td style="width:60px">${i.image_url ? `<img class="thumb" src="${esc(i.image_url)}" alt="" loading="lazy" />` : '<div class="thumb">🎒</div>'}</td>
+      <td><strong>${esc(i.nom)}</strong></td>
+      <td><span class="badge badge-orange">${esc(i.categorie || '—')}</span></td>
+      <td>${esc(i.marque || '—')}</td>
+      <td class="td-actions">
+        <button class="btn btn-outline btn-sm btn-icon" title="Modifier" onclick="openMatModal('${i.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon" title="Supprimer" onclick="deleteMat('${i.id}')">🗑️</button>
       </td>
-    </tr>`).join('');
+    </tr>`).join('') : '<tr><td colspan="5" class="td-empty">Aucun équipement — ajoutes-en un !</td></tr>';
   }
 
-  document.getElementById('btnAddMat').addEventListener('click', () => openMatModal());
-  document.getElementById('matModalClose').addEventListener('click', () => document.getElementById('matModal').classList.remove('open'));
-
-  async function openMatModal(id = null) {
-    document.getElementById('matId').value = id||'';
-    document.getElementById('matModalTitle').textContent = id ? 'Modifier l\'équipement' : 'Ajouter un équipement';
-    ['mNom','mMarque','mDesc','mAvis'].forEach(i => document.getElementById(i).value='');
-    document.getElementById('mImgPreview').innerHTML='';
-    if (id) {
-      const { data: item } = await sb.from('materiel').select('*').eq('id',id).single();
-      if (item) {
-        document.getElementById('mNom').value=item.nom||'';
-        document.getElementById('mCat').value=item.categorie||'Autre';
-        document.getElementById('mMarque').value=item.marque||'';
-        document.getElementById('mDesc').value=item.description||'';
-        document.getElementById('mAvis').value=item.avis||'';
-        if (item.image_url) document.getElementById('mImgPreview').innerHTML=`<img src="${item.image_url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;margin-top:0.25rem" />`;
-      }
-    }
-    document.getElementById('matModal').classList.add('open');
+  let matEditing = null;
+  function openMatModal(id = null) {
+    const item = id ? matCache[id] : null;
+    matEditing = item;
+    $('matModalTitle').textContent = id ? 'Modifier l\'équipement' : 'Ajouter un équipement';
+    $('mNom').value = item?.nom || '';
+    $('mCat').value = item?.categorie || 'Chaussures';
+    $('mMarque').value = item?.marque || '';
+    $('mDesc').value = item?.description || '';
+    $('mAvis').value = item?.avis || '';
+    $('mImgFile').value = '';
+    $('mImgPreview').style.display = item?.image_url ? '' : 'none';
+    if (item?.image_url) $('mImgPreview').src = item.image_url;
+    openModal('matModal');
+    setTimeout(() => $('mNom').focus(), 50);
   }
 
-  document.getElementById('matModalSave').addEventListener('click', async () => {
-    const id = document.getElementById('matId').value;
-    if (!document.getElementById('mNom').value) return toast('Nom obligatoire', 'error');
-    const btn = document.getElementById('matModalSave');
-    btn.disabled=true; btn.textContent='Enregistrement…';
-    let image_url = null;
-    const imgFile = document.getElementById('mImgFile').files[0];
-    if (imgFile) {
-      try { image_url = await uploadImage(imgFile, 'images', 'materiel'); } catch(e) { toast('Erreur image : '+e.message,'error'); btn.disabled=false;btn.textContent='💾 Enregistrer';return; }
-    }
-    const payload = { nom: document.getElementById('mNom').value, categorie: document.getElementById('mCat').value, marque: document.getElementById('mMarque').value, description: document.getElementById('mDesc').value, avis: document.getElementById('mAvis').value };
-    if (image_url) payload.image_url = image_url;
-    let error;
-    if (id) ({ error } = await sb.from('materiel').update(payload).eq('id',id));
-    else ({ error } = await sb.from('materiel').insert(payload));
-    btn.disabled=false; btn.textContent='💾 Enregistrer';
-    if (error) return toast('Erreur : '+error.message,'error');
-    toast('Équipement enregistré ✅');
-    document.getElementById('matModal').classList.remove('open');
-    loadMatTable();
+  $('matModalSave').addEventListener('click', async () => {
+    const nom = $('mNom').value.trim();
+    if (!nom) return toast('Le nom est obligatoire', 'error');
+    const file = $('mImgFile').files[0];
+    if (file && !checkSize([file], MAX_IMG, 'image')) return;
+    const btn = $('matModalSave');
+    busy(btn, true, 'Enregistrement…');
+    try {
+      const payload = { nom, categorie: $('mCat').value, marque: $('mMarque').value.trim() || null, description: $('mDesc').value.trim() || null, avis: $('mAvis').value.trim() || null };
+      if (file) payload.image_url = await uploadImage(file, 'materiel');
+      const { error } = matEditing
+        ? await sb.from('materiel').update(payload).eq('id', matEditing.id)
+        : await sb.from('materiel').insert(payload);
+      if (error) throw error;
+      if (file && matEditing?.image_url) removeStorageFiles([matEditing.image_url]);
+      toast('Équipement enregistré ✅');
+      closeModal('matModal');
+      loadMatTable();
+    } catch (e) { toast('Erreur : ' + e.message, 'error'); }
+    busy(btn, false);
   });
 
   async function deleteMat(id) {
-    if (!confirm('Supprimer cet équipement ?')) return;
-    const { error } = await sb.from('materiel').delete().eq('id',id);
-    if (error) return toast('Erreur : '+error.message,'error');
-    toast('Supprimé ✅'); loadMatTable();
+    const item = matCache[id];
+    if (!confirm(`Supprimer « ${item?.nom || 'cet équipement'} » ?`)) return;
+    const { error } = await sb.from('materiel').delete().eq('id', id);
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    if (item?.image_url) removeStorageFiles([item.image_url]);
+    toast('Équipement supprimé ✅');
+    loadMatTable();
   }
-
-  function updateTotal() { const r = +document.getElementById('stRaces').value||0; const d = +document.getElementById('stDnf').value||0; document.getElementById('stTotal').value = r+d; }
-  document.getElementById('stRaces').addEventListener('input', updateTotal);
-  document.getElementById('stDnf').addEventListener('input', updateTotal);
-  // ─── GESTION SUPPRESSION MÉDIAS ───
-  let removedImgs = []; // indices à supprimer
-  let removedVids = [];
-
-  function removeMedia(type, index) {
-    if (type === 'img') {
-      if (!removedImgs.includes(index)) removedImgs.push(index);
-    } else {
-      if (!removedVids.includes(index)) removedVids.push(index);
-    }
-    // Griser visuellement l'élément cliqué
-    const el = document.querySelector(`[data-media-type="${type}"][data-media-index="${index}"]`);
-    if (el) { el.style.opacity = '0.25'; el.style.pointerEvents = 'none'; }
-    toast('Média marqué · cliquez Enregistrer pour confirmer', 'success');
-  }
-
-  // Reset suppression à chaque ouverture modal
-  const origOpenRaceModal = openRaceModal;
-
-  document.getElementById('btnLogout').addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
-
-  checkAuth();
 </script>
 </body>
 </html>

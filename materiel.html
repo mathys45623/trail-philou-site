@@ -3,202 +3,79 @@
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mon matériel — Trail Philou</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet" />
+  <meta name="theme-color" content="#07090d" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    .cat-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-    .cat-btn {
-      padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.8rem; font-weight: 600;
-      border: 1.5px solid var(--gray-200); background: white; color: var(--gray-600);
-      cursor: pointer; transition: all 0.15s;
-    }
-    .cat-btn.active { background: linear-gradient(135deg, var(--blue), var(--green)); color: white; border-color: transparent; }
-    .cat-btn:hover:not(.active) { border-color: var(--blue-mid); color: var(--blue); }
-  </style>
 </head>
-<body>
-<aside class="sidebar">
-  <div class="sidebar-logo"><div class="logo">TRAIL PHILOU</div><div class="logo-sub">Mon univers trail</div></div>
-  <nav class="sidebar-nav">
-    <a href="index.html" class="nav-link"><span class="ni">🏠</span> Accueil</a>
-    <div class="sidebar-section">Mon trail</div>
-    <a href="statistiques.html" class="nav-link"><span class="ni">📊</span> Statistiques</a>
-    <a href="courses-terminees.html" class="nav-link"><span class="ni">🏆</span> Courses terminées</a>
-    <a href="prochaines-courses.html" class="nav-link"><span class="ni">🗓️</span> Prochaines courses</a>
-    <a href="materiel.html" class="nav-link active"><span class="ni">🎒</span> Mon matériel</a>
-    <div style="flex:1"></div>
-  </nav>
-  <div class="sidebar-bottom" id="userBottom" style="display:none">
-    <div class="user-pill">
-      <div class="user-avatar" id="userAv">?</div>
-      <div class="user-name" id="userName">—</div>
-      <button class="btn-logout" id="btnLogout">⎋</button>
-    </div>
-  </div>
-</aside>
+<body data-page="gear">
 
 <main class="main">
   <div class="page-header">
-    <div class="page-title">🎒 Mon matériel</div>
-    <div class="page-sub">Équipement, nutrition et vêtements</div>
+    <div class="page-eyebrow">🎒 Équipement</div>
+    <h1 class="page-title">Mon matériel</h1>
+    <p class="page-sub">Chaussures, sac, nutrition, électronique… tout ce qui m'accompagne sur les sentiers, avec mon avis honnête.</p>
   </div>
   <div class="page-content">
-    <div class="cat-filters" id="catFilters">
-      <button class="cat-btn active" data-cat="all">Tout voir</button>
-    </div>
-    <div class="mat-grid" id="matGrid">
-      <div class="empty"><div class="empty-icon">⏳</div><p>Chargement…</p></div>
+    <div class="filters" id="catFilters"></div>
+    <div class="card-grid" id="matGrid">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
     </div>
   </div>
 </main>
 
-<div class="toast" id="toast"></div>
-
-<!-- ─── MODAL CONNEXION ─── -->
-<div id="authWall" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(15,26,33,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:20px;padding:2.5rem;width:100%;max-width:400px;margin:1rem;box-shadow:0 24px 80px rgba(0,0,0,0.2);">
-    <div style="font-family:Montserrat,sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:0.25rem">Bienvenue !</div>
-    <div style="color:#8fa3b0;font-size:0.875rem;margin-bottom:1.5rem">Connectez-vous pour accéder à ce contenu</div>
-    <div style="display:flex;border-bottom:2px solid #eef2f5;margin-bottom:1.5rem">
-      <button onclick="awShowTab('login')" id="awTabLogin" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#1a8fd1;border-bottom:2px solid #1a8fd1;margin-bottom:-2px">Connexion</button>
-      <button onclick="awShowTab('signup')" id="awTabSignup" style="flex:1;padding:0.6rem;background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;color:#8fa3b0;border-bottom:2px solid transparent;margin-bottom:-2px">Inscription</button>
-    </div>
-    <div id="awLogin">
-      <input id="awLoginEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awLoginPass" type="password" placeholder="Mot de passe" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <button onclick="awLogin()" id="awBtnLogin" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Se connecter</button>
-      <div id="awLoginMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
-    </div>
-    <div id="awSignup" style="display:none">
-      <input id="awSignupName" type="text" placeholder="Prénom" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awSignupEmail" type="email" placeholder="Email" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <input id="awSignupPass" type="password" placeholder="Mot de passe (6 car. min)" style="width:100%;padding:0.7rem 1rem;border:1.5px solid #dce4ea;border-radius:8px;font-size:0.9rem;margin-bottom:0.875rem;outline:none;font-family:Inter,sans-serif" />
-      <button onclick="awSignup()" id="awBtnSignup" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,#1a8fd1,#22a85e);color:white;border:none;border-radius:50px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Créer mon compte</button>
-      <div id="awSignupMsg" style="display:none;margin-top:0.75rem;padding:0.5rem;border-radius:8px;font-size:0.82rem;text-align:center"></div>
-    </div>
-  </div>
-</div>
 <script src="shared.js"></script>
 <script>
+  const CAT_EMOJI = { 'Chaussures': '👟', 'Vêtements': '👕', 'Sac & Hydratation': '🎒', 'Nutrition': '🍌', 'Électronique': '⌚', 'Accessoires': '🧤', 'Autre': '📦' };
   let allItems = [];
 
-  const catEmojis = { 'Chaussures': '👟', 'Vêtements': '👕', 'Sac & Hydratation': '🎒', 'Nutrition': '🍌', 'Électronique': '⌚', 'Accessoires': '🧤', 'Autre': '📦' };
-
   async function loadPage() {
-
-    const { data: items } = await sb.from('materiel').select('*').order('categorie');
-    allItems = items || [];
+    const { data, error } = await sb.from('materiel').select('*').order('categorie').order('nom');
+    if (error) {
+      document.getElementById('matGrid').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>Impossible de charger le matériel.</p></div>';
+      return;
+    }
+    allItems = data || [];
     buildFilters();
     renderItems('all');
   }
 
   function buildFilters() {
     const cats = [...new Set(allItems.map(i => i.categorie).filter(Boolean))];
-    const container = document.getElementById('catFilters');
-    cats.forEach(cat => {
-      const btn = document.createElement('button');
-      btn.className = 'cat-btn';
-      btn.dataset.cat = cat;
-      btn.textContent = (catEmojis[cat] || '📦') + ' ' + cat;
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderItems(cat);
-      });
-      container.appendChild(btn);
-    });
-    container.querySelector('[data-cat="all"]').addEventListener('click', () => {
-      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      container.querySelector('[data-cat="all"]').classList.add('active');
-      renderItems('all');
-    });
+    const el = document.getElementById('catFilters');
+    if (!cats.length) { el.style.display = 'none'; return; }
+    el.innerHTML = `<button class="chip active" data-cat="all">Tout voir · ${allItems.length}</button>` +
+      cats.map(c => `<button class="chip" data-cat="${esc(c)}">${CAT_EMOJI[c] || '📦'} ${esc(c)}</button>`).join('');
+    el.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+      el.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === b));
+      renderItems(b.dataset.cat);
+    }));
   }
 
   function renderItems(cat) {
-    const filtered = cat === 'all' ? allItems : allItems.filter(i => i.categorie === cat);
+    const list = cat === 'all' ? allItems : allItems.filter(i => i.categorie === cat);
     const el = document.getElementById('matGrid');
-    if (!filtered.length) {
-      el.innerHTML = '<div class="empty"><div class="empty-icon">🎒</div><p>Aucun équipement dans cette catégorie</p></div>';
+    if (!list.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🎒</div><p>Aucun équipement pour le moment</p></div>';
       return;
     }
-    el.innerHTML = filtered.map(item => `
-      <div class="mat-card">
+    el.innerHTML = list.map((item, i) => `
+      <article class="mat-card" style="animation-delay:${i * 40}ms">
         <div class="mat-card-img">
-          ${item.image_url
-            ? `<img src="${item.image_url}" alt="${item.nom}" />`
-            : `<div class="no-img">${catEmojis[item.categorie] || '📦'}</div>`}
+          ${item.image_url ? `<img src="${esc(item.image_url)}" alt="${esc(item.nom)}" loading="lazy" />` : `<div class="no-img">${CAT_EMOJI[item.categorie] || '📦'}</div>`}
         </div>
         <div class="mat-card-body">
-          <div class="mat-card-cat">${item.categorie || 'Matériel'}</div>
-          <div class="mat-card-name">${item.nom}</div>
-          ${item.marque ? `<div style="font-size:0.8rem;color:var(--blue);font-weight:600;margin-bottom:0.35rem">${item.marque}</div>` : ''}
-          ${item.description ? `<div class="mat-card-desc">${item.description}</div>` : ''}
-          ${item.avis ? `<div style="margin-top:0.75rem;font-size:0.82rem;color:var(--gray-500);border-top:1px solid var(--gray-100);padding-top:0.6rem">⭐ ${item.avis}</div>` : ''}
+          <div class="mat-card-cat">${esc(item.categorie || 'Matériel')}</div>
+          <div class="mat-card-name">${esc(item.nom)}</div>
+          ${item.marque ? `<div class="mat-card-brand">${esc(item.marque)}</div>` : ''}
+          ${item.description ? `<div class="mat-card-desc">${esc(item.description)}</div>` : ''}
+          ${item.avis ? `<div class="mat-card-avis"><div>⭐ ${esc(item.avis)}</div></div>` : ''}
         </div>
-      </div>`).join('');
+      </article>`).join('');
   }
 
-  document.getElementById('btnLogout')?.addEventListener('click', async () => { await sb.auth.signOut(); window.location.href = 'index.html'; });
-
-  sb.auth.getSession().then(({ data: { session } }) => {
-    if (!session) {
-      document.getElementById('authWall').style.display = 'flex';
-    } else {
-      document.getElementById('userBottom').style.display = '';
-      const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
-      document.getElementById('userName').textContent = name;
-      document.getElementById('userAv').textContent = name.charAt(0).toUpperCase();
-      loadPage();
-    }
-  });
-  function awShowTab(tab) {
-    document.getElementById('awLogin').style.display = tab==='login' ? '' : 'none';
-    document.getElementById('awSignup').style.display = tab==='signup' ? '' : 'none';
-    document.getElementById('awTabLogin').style.cssText += tab==='login' ? ';color:#1a8fd1;border-bottom:2px solid #1a8fd1' : ';color:#8fa3b0;border-bottom:2px solid transparent';
-    document.getElementById('awTabSignup').style.cssText += tab==='signup' ? ';color:#1a8fd1;border-bottom:2px solid #1a8fd1' : ';color:#8fa3b0;border-bottom:2px solid transparent';
-  }
-  function awMsg(id, txt, type) {
-    const el = document.getElementById(id);
-    el.textContent = txt;
-    el.style.display = '';
-    el.style.background = type==='error' ? '#fee2e2' : '#e8f7ee';
-    el.style.color = type==='error' ? '#b91c1c' : '#0d5230';
-  }
-  async function awLogin() {
-    const email = document.getElementById('awLoginEmail').value;
-    const pass = document.getElementById('awLoginPass').value;
-    if (!email || !pass) return awMsg('awLoginMsg','Remplissez tous les champs.','error');
-    const btn = document.getElementById('awBtnLogin');
-    btn.disabled=true; btn.textContent='Connexion…';
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    btn.disabled=false; btn.textContent='Se connecter';
-    if (error) return awMsg('awLoginMsg','Email ou mot de passe incorrect.','error');
-    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
-    if (profile?.role === 'admin') { window.location.href = 'dashboard.html'; return; }
-    document.getElementById('authWall').style.display = 'none';
-    updateUserUI(data.user);
-  }
-  async function awSignup() {
-    const name = document.getElementById('awSignupName').value;
-    const email = document.getElementById('awSignupEmail').value;
-    const pass = document.getElementById('awSignupPass').value;
-    if (!name || !email || !pass) return awMsg('awSignupMsg','Remplissez tous les champs.','error');
-    const btn = document.getElementById('awBtnSignup');
-    btn.disabled=true; btn.textContent='Création…';
-    const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    btn.disabled=false; btn.textContent='Créer mon compte';
-    if (error) return awMsg('awSignupMsg', error.message, 'error');
-    const { data: loginData } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (loginData?.user) { document.getElementById('authWall').style.display='none'; updateUserUI(loginData.user); }
-  }
-  function updateUserUI(user) {
-    const name = user.user_metadata?.full_name || user.email.split('@')[0];
-    const bottom = document.getElementById('userBottom');
-    if (bottom) { bottom.style.display=''; document.getElementById('userName').textContent=name; document.getElementById('userAv').textContent=name.charAt(0).toUpperCase(); }
-  }
+  initPage({ requireAuth: true, onReady: loadPage });
 </script>
-
-
 </body>
 </html>
