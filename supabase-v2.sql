@@ -228,3 +228,12 @@ ALTER TABLE materiel ADD COLUMN IF NOT EXISTS runner_id UUID REFERENCES runners(
 -- Fonctions : can_edit_runner(rid), is_runner(), link_runner_account(rid, email), runner_accounts()
 -- Policies : runners (lecture publique, modif admin ou coureur relié), races/materiel (can_edit_runner),
 -- storage (envoi admin ou coureur relié, suppression admin ou propriétaire du fichier).
+
+-- ============================================================
+-- v6 : PHOTOS RANDO (façon Instagram, réservé aux membres)
+-- (script complet : migration Supabase « v6_photo_posts »)
+-- ============================================================
+-- posts(id, user_id, runner_id, caption, location, taken_on, images[1..10], created_at)
+--   lecture : membres connectés ; publication : admin ou coureur relié ; suppression : auteur ou admin
+-- post_likes(post_id, user_id) : lecture membres, chacun gère ses propres j'aime
+-- comments.post_id : commentaires sur une publication (lisibles seulement par les membres)

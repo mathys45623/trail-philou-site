@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photos rando — Trail Team</title>
+  <meta name="theme-color" content="#07090d" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .ph-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .ph-top .filters { margin: 0; }
+    .ph-count { color: var(--muted); font-size: 0.88rem; margin-bottom: 1rem; }
+    .ph-count b { color: var(--text); }
+
+    /* Grille façon Instagram */
+    .ph-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .ph-tile { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 10px; cursor: pointer; background: var(--surface-2); border: none; padding: 0; animation: slideUp 0.4s ease both; }
+    .ph-tile img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s cubic-bezier(.2,.8,.2,1); }
+    .ph-tile:hover img { transform: scale(1.06); }
+    .ph-tile .ph-over { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 1.4rem; background: rgba(7,9,13,0.55); color: #fff; font-weight: 700; font-size: 1rem; opacity: 0; transition: opacity 0.25s; }
+    .ph-tile:hover .ph-over, .ph-tile:focus-visible .ph-over { opacity: 1; }
+    .ph-tile .ph-multi { position: absolute; top: 8px; right: 8px; font-size: 0.95rem; filter: drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
+    .ph-tile .ph-who { position: absolute; left: 8px; bottom: 8px; }
+    .ph-empty { grid-column: 1 / -1; }
+
+    /* Visionneuse */
+    .pv-overlay { display: none; position: fixed; inset: 0; z-index: 220; background: rgba(3,5,8,0.88); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 2rem; animation: fadeIn 0.2s; }
+    .pv-overlay.open { display: flex; }
+    .pv { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); width: min(1150px, 100%); height: min(88vh, 820px); background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow); animation: slideUp 0.3s ease; }
+    .pv-media { position: relative; background: #000; display: grid; place-items: center; overflow: hidden; user-select: none; }
+    .pv-media img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .pv-nav { position: absolute; top: 50%; translate: 0 -50%; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,0.85); color: #111; font-size: 1.3rem; cursor: pointer; display: grid; place-items: center; transition: background 0.2s, transform 0.2s; }
+    .pv-nav:hover { background: #fff; transform: scale(1.08); }
+    .pv-prev { left: 12px; } .pv-next { right: 12px; }
+    .pv-dots { position: absolute; bottom: 14px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; }
+    .pv-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: background 0.2s, transform 0.2s; }
+    .pv-dots i.on { background: #fff; transform: scale(1.2); }
+    .pv-heart { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font-size: 6.5rem; opacity: 0; }
+    .pv-heart.pop { animation: heartPop 0.9s ease; }
+    @keyframes heartPop { 0% { opacity: 0; transform: scale(0.3); } 20% { opacity: 1; transform: scale(1.15); } 40% { transform: scale(0.95); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.1); } }
+    .pv-side { display: flex; flex-direction: column; min-height: 0; }
+    .pv-head { display: flex; align-items: center; gap: 0.7rem; padding: 1rem 1.2rem; border-bottom: 1px solid var(--border); }
+    .pv-head .who { flex: 1; min-width: 0; }
+    .pv-head .who b { display: block; font-size: 0.92rem; }
+    .pv-head .who span { font-size: 0.78rem; color: var(--muted); }
+    .pv-icon { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.05rem; padding: 0.35rem 0.5rem; border-radius: 8px; transition: background 0.2s, color 0.2s; }
+    .pv-icon:hover { background: var(--surface-2); color: var(--text); }
+    .pv-scroll { flex: 1; overflow-y: auto; padding: 1.1rem 1.2rem; }
+    .pv-caption { font-size: 0.94rem; line-height: 1.65; color: var(--text); white-space: pre-line; overflow-wrap: anywhere; margin-bottom: 0.4rem; }
+    .pv-date { font-size: 0.74rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.2rem; }
+    .pv-actions { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1.2rem; border-top: 1px solid var(--border); }
+    .like-btn { display: inline-flex; align-items: center; gap: 0.45rem; background: none; border: none; color: var(--text); cursor: pointer; font-size: 0.95rem; font-weight: 700; padding: 0.3rem 0.2rem; }
+    .like-btn .h { font-size: 1.5rem; transition: transform 0.25s cubic-bezier(.3,1.8,.5,1); filter: grayscale(1) brightness(1.8); }
+    .like-btn.liked .h { filter: none; transform: scale(1.15); }
+    .like-btn:active .h { transform: scale(0.8); }
+    .pv-close-x { position: fixed; top: 1rem; right: 1.2rem; z-index: 230; }
+
+    /* Nouvelle publication */
+    .drop { border: 2px dashed var(--border-2); border-radius: var(--r-lg); padding: 2rem 1rem; text-align: center; cursor: pointer; color: var(--muted); transition: border-color 0.2s, background 0.2s; }
+    .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+    .drop b { display: block; font-size: 2rem; margin-bottom: 0.4rem; }
+    .np-previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.5rem; margin-top: 0.8rem; }
+    .np-previews div { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-2); }
+    .np-previews img { width: 100%; height: 100%; object-fit: cover; }
+    .np-previews button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(7,9,13,.8); color: #fff; cursor: pointer; font-size: 0.7rem; }
+    .np-previews .first::after { content: 'Couverture'; position: absolute; left: 4px; bottom: 4px; font-size: 0.6rem; font-weight: 700; background: var(--accent); color: #1a0d05; padding: 0.1rem 0.35rem; border-radius: 6px; }
+
+    @media (max-width: 860px) {
+      .pv-overlay { padding: 0; align-items: stretch; }
+      .pv { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: 100%; border-radius: 0; border: none; }
+      .pv-media { max-height: 55vh; min-height: 260px; }
+    }
+    @media (max-width: 600px) { .ph-grid { gap: 3px; } .ph-tile { border-radius: 4px; } .ph-tile .ph-who { display: none; } }
+  </style>
+</head>
+<body data-page="photos">
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-eyebrow">📸 Galerie</div>
+    <h1 class="page-title">Photos rando</h1>
+    <p class="page-sub">Sorties, reconnaissances, sommets et paysages : les plus belles images de l'équipe sur les sentiers.</p>
+  </div>
+  <div class="page-content">
+    <div class="ph-top">
+      <div class="filters" id="runnerFilter"></div>
+      <button class="btn btn-primary" id="btnNewPost" style="display:none">＋ Publier des photos</button>
+    </div>
+    <div class="ph-count" id="phCount"></div>
+    <div class="ph-grid" id="phGrid">
+      <div class="skeleton" style="min-height:0;aspect-ratio:1"></div><div class="skeleton" style="min-height:0;aspect-ratio:1"></div><div class="skeleton" style="min-height:0;aspect-ratio:1"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Visionneuse -->
+<div class="pv-overlay" id="pvOverlay">
+  <button class="lightbox-btn pv-close-x" id="pvClose" aria-label="Fermer">✕</button>
+  <div class="pv" role="dialog" aria-modal="true">
+    <div class="pv-media" id="pvMedia">
+      <img id="pvImg" alt="" />
+      <button class="pv-nav pv-prev" id="pvPrev" aria-label="Photo précédente">‹</button>
+      <button class="pv-nav pv-next" id="pvNext" aria-label="Photo suivante">›</button>
+      <div class="pv-dots" id="pvDots"></div>
+      <div class="pv-heart" id="pvHeart">❤️</div>
+    </div>
+    <div class="pv-side">
+      <div class="pv-head" id="pvHead"></div>
+      <div class="pv-scroll">
+        <div class="pv-caption" id="pvCaption"></div>
+        <div class="pv-date" id="pvDate"></div>
+        <div id="pvComments"></div>
+      </div>
+      <div class="pv-actions">
+        <button class="like-btn" id="pvLike"><span class="h">❤️</span><span id="pvLikeCount">0</span></button>
+        <span style="color:var(--muted);font-size:.9rem">💬 <span id="pvComCount">0</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Nouvelle publication -->
+<div class="modal-overlay" id="newPostModal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-title">📸 Nouvelle publication</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <input type="file" id="npFiles" accept="image/*" multiple style="display:none" />
+        <div class="drop" id="npDrop"><b>🏔️</b>Clique ou glisse tes photos ici<div class="form-hint" style="margin-top:.3rem">Jusqu'à 10 photos · compressées automatiquement</div></div>
+        <div class="np-previews" id="npPreviews"></div>
+      </div>
+      <div class="form-group full"><label class="form-label" for="npCaption">Légende</label><textarea class="form-textarea" id="npCaption" rows="3" maxlength="2200" placeholder="Raconte la sortie : le parcours, la vue, les copains…"></textarea></div>
+      <div class="form-group"><label class="form-label" for="npLocation">Lieu</label><input class="form-input" id="npLocation" maxlength="100" placeholder="Lac Blanc, Chamonix" /></div>
+      <div class="form-group"><label class="form-label" for="npDate">Date de la sortie</label><input class="form-input" type="date" id="npDate" /></div>
+      <div class="form-group full"><label class="form-label" for="npRunner">Coureur</label><select class="form-select" id="npRunner"></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="npCancel">Annuler</button>
+      <button class="btn btn-primary" id="npPublish">Publier</button>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  let posts = [], myLikes = new Set(), runner = null;
+  let cur = null, curImg = 0;
+
+  // ─── CHARGEMENT ───
+  async function loadPage() {
+    $('btnNewPost').style.display = canManage() ? '' : 'none';
+    const [{ data, error }, { data: likes }] = await Promise.all([
+      sb.from('posts').select('*, profiles(full_name), post_likes(count), comments(count)').order('created_at', { ascending: false }).limit(300),
+      sb.from('post_likes').select('post_id').eq('user_id', currentUser.id),
+    ]);
+    if (error) { $('phGrid').innerHTML = '<div class="empty ph-empty"><div class="empty-icon">⚠️</div><p>Impossible de charger les photos.</p></div>'; return; }
+    posts = (data || []).map(p => ({ ...p, likes: p.post_likes?.[0]?.count || 0, coms: p.comments?.[0]?.count || 0 }));
+    myLikes = new Set((likes || []).map(l => l.post_id));
+    if (!runner) runner = mountRunnerFilter($('runnerFilter'), runnersCache, sel => { runner = sel; renderGrid(); });
+    renderGrid();
+    const hash = location.hash.slice(1);
+    if (hash && posts.some(p => p.id === hash)) openPost(hash);
+  }
+
+  const visible = () => runner ? posts.filter(p => p.runner_id === runner.id) : posts;
+
+  function renderGrid() {
+    const list = visible();
+    const nPhotos = list.reduce((a, p) => a + toArr(p.images).length, 0);
+    $('phCount').innerHTML = list.length ? `<b>${list.length}</b> publication${list.length > 1 ? 's' : ''} · <b>${nPhotos}</b> photo${nPhotos > 1 ? 's' : ''}` : '';
+    $('phGrid').innerHTML = list.length ? list.map((p, i) => {
+      const imgs = toArr(p.images);
+      return `<button class="ph-tile" style="animation-delay:${Math.min(i, 12) * 35}ms" data-id="${p.id}" aria-label="${esc(p.caption || 'Photo')}">
+        <img src="${esc(imgs[0])}" alt="" loading="lazy" />
+        ${imgs.length > 1 ? '<span class="ph-multi">🗂️</span>' : ''}
+        ${!runner && p.runner_id ? `<span class="ph-who">${runnerChip(runnerById(p.runner_id))}</span>` : ''}
+        <span class="ph-over"><span>❤️ ${p.likes}</span><span>💬 ${p.coms}</span></span>
+      </button>`;
+    }).join('') : `<div class="empty ph-empty"><div class="empty-icon">🏔️</div><p>Aucune photo pour l'instant.${canManage() ? ' Clique sur « Publier des photos » pour lancer la galerie !' : ''}</p></div>`;
+  }
+  $('phGrid').addEventListener('click', e => { const t = e.target.closest('.ph-tile'); if (t) openPost(t.dataset.id); });
+
+  // ─── VISIONNEUSE ───
+  function openPost(id) {
+    cur = posts.find(p => p.id === id);
+    if (!cur) return;
+    curImg = 0;
+    history.replaceState(null, '', location.search + '#' + id);
+    const r = runnerById(cur.runner_id);
+    const author = cur.profiles?.full_name || 'Membre';
+    const canDel = cur.user_id === currentUser.id || isAdmin();
+    $('pvHead').innerHTML = `${r ? runnerAvatar(r, 38) : `<div class="user-avatar">${esc(author.charAt(0).toUpperCase())}</div>`}
+      <div class="who"><b>${esc(r ? r.name : author)}</b><span>${esc(cur.location || (r ? 'Publié par ' + author : ''))}</span></div>
+      ${canDel ? '<button class="pv-icon" id="pvDelete" title="Supprimer la publication">🗑️</button>' : ''}`;
+    $('pvDelete')?.addEventListener('click', deletePost);
+    $('pvCaption').textContent = cur.caption || '';
+    $('pvCaption').style.display = cur.caption ? '' : 'none';
+    $('pvDate').textContent = cur.taken_on ? fmtDate(cur.taken_on) : fmtRelative(cur.created_at);
+    renderLike();
+    $('pvComCount').textContent = cur.coms;
+    mountComments($('pvComments'), { postId: cur.id, placeholder: 'Ajoute un commentaire…', onChange: refreshComCount });
+    showImg();
+    $('pvOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closePost() {
+    $('pvOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+    history.replaceState(null, '', location.search || location.pathname);
+    cur = null;
+  }
+  function showImg() {
+    const imgs = toArr(cur.images);
+    $('pvImg').src = imgs[curImg];
+    $('pvPrev').style.display = curImg > 0 ? '' : 'none';
+    $('pvNext').style.display = curImg < imgs.length - 1 ? '' : 'none';
+    $('pvDots').innerHTML = imgs.length > 1 ? imgs.map((_, i) => `<i class="${i === curImg ? 'on' : ''}"></i>`).join('') : '';
+  }
+  const step = d => { const n = toArr(cur.images).length; curImg = Math.max(0, Math.min(n - 1, curImg + d)); showImg(); };
+  $('pvPrev').addEventListener('click', () => step(-1));
+  $('pvNext').addEventListener('click', () => step(1));
+  $('pvClose').addEventListener('click', closePost);
+  $('pvOverlay').addEventListener('mousedown', e => { if (e.target.id === 'pvOverlay') closePost(); });
+  document.addEventListener('keydown', e => {
+    if (!cur || $('newPostModal').classList.contains('open') || e.target.closest('textarea, input')) return;
+    if (e.key === 'Escape') closePost();
+    if (e.key === 'ArrowLeft') step(-1);
+    if (e.key === 'ArrowRight') step(1);
+  });
+  // glisser du doigt pour changer de photo
+  let touchX = null;
+  $('pvMedia').addEventListener('touchstart', e => touchX = e.touches[0].clientX, { passive: true });
+  $('pvMedia').addEventListener('touchend', e => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
+    touchX = null;
+  });
+
+  async function refreshComCount() {
+    const { count } = await sb.from('comments').select('id', { count: 'exact', head: true }).eq('post_id', cur.id);
+    cur.coms = count || 0;
+    $('pvComCount').textContent = cur.coms;
+    renderGrid();
+  }
+
+  // ─── J'AIME ───
+  function renderLike() {
+    $('pvLike').classList.toggle('liked', myLikes.has(cur.id));
+    $('pvLikeCount').textContent = cur.likes;
+  }
+  async function toggleLike(forceOn = false) {
+    const p = cur, liked = myLikes.has(p.id);
+    if (liked && forceOn) return;
+    // affichage immédiat, puis enregistrement
+    liked ? myLikes.delete(p.id) : myLikes.add(p.id);
+    p.likes += liked ? -1 : 1;
+    renderLike(); renderGrid();
+    const { error } = liked
+      ? await sb.from('post_likes').delete().eq('post_id', p.id).eq('user_id', currentUser.id)
+      : await sb.from('post_likes').insert({ post_id: p.id });
+    if (error) {
+      liked ? myLikes.add(p.id) : myLikes.delete(p.id);
+      p.likes += liked ? 1 : -1;
+      if (cur === p) renderLike();
+      renderGrid();
+      toast('Erreur : ' + error.message, 'error');
+    }
+  }
+  $('pvLike').addEventListener('click', () => toggleLike());
+  $('pvMedia').addEventListener('dblclick', e => {
+    if (e.target.closest('.pv-nav')) return;
+    const h = $('pvHeart');
+    h.classList.remove('pop'); void h.offsetWidth; h.classList.add('pop');
+    toggleLike(true);
+  });
+
+  async function deletePost() {
+    if (!confirm('Supprimer cette publication et ses photos ?')) return;
+    const p = cur;
+    const { error } = await sb.from('posts').delete().eq('id', p.id);
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    const paths = toArr(p.images).map(u => u.match(/\/storage\/v1\/object\/public\/images\/(.+)$/)?.[1]).filter(Boolean).map(decodeURIComponent);
+    if (paths.length) sb.storage.from('images').remove(paths);
+    posts = posts.filter(x => x.id !== p.id);
+    closePost(); renderGrid();
+    toast('Publication supprimée');
+  }
+
+  // ─── NOUVELLE PUBLICATION ───
+  let npFiles = [];
+  function openNewPost() {
+    npFiles = []; renderPreviews();
+    $('npCaption').value = ''; $('npLocation').value = '';
+    $('npDate').value = new Date().toISOString().slice(0, 10);
+    const options = isAdmin() ? runnersCache : runnersCache.filter(r => r.id === myRunner?.id);
+    $('npRunner').innerHTML = (isAdmin() ? '<option value="">— Toute l\'équipe —</option>' : '') +
+      options.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('');
+    $('npRunner').value = runner && options.some(o => o.id === runner.id) ? runner.id : (myRunner?.id && options.some(o => o.id === myRunner.id) ? myRunner.id : '');
+    $('newPostModal').classList.add('open');
+  }
+  const closeNewPost = () => $('newPostModal').classList.remove('open');
+  $('btnNewPost').addEventListener('click', openNewPost);
+  $('npCancel').addEventListener('click', closeNewPost);
+  $('newPostModal').addEventListener('mousedown', e => { if (e.target.id === 'newPostModal') closeNewPost(); });
+
+  function addFiles(list) {
+    const imgs = [...list].filter(f => f.type.startsWith('image/'));
+    if (npFiles.length + imgs.length > 10) toast('10 photos maximum par publication', 'error');
+    npFiles = [...npFiles, ...imgs].slice(0, 10);
+    renderPreviews();
+  }
+  function renderPreviews() {
+    $('npPreviews').innerHTML = npFiles.map((f, i) => `<div class="${i === 0 ? 'first' : ''}"><img src="${URL.createObjectURL(f)}" alt="" /><button type="button" data-rm="${i}" aria-label="Retirer">✕</button></div>`).join('');
+  }
+  $('npPreviews').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (b) { npFiles.splice(+b.dataset.rm, 1); renderPreviews(); } });
+  $('npDrop').addEventListener('click', () => $('npFiles').click());
+  $('npFiles').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+  ['dragenter', 'dragover'].forEach(ev => $('npDrop').addEventListener(ev, e => { e.preventDefault(); $('npDrop').classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => $('npDrop').addEventListener(ev, e => { e.preventDefault(); $('npDrop').classList.remove('over'); }));
+  $('npDrop').addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+  $('npPublish').addEventListener('click', async () => {
+    if (!npFiles.length) return toast('Ajoute au moins une photo', 'error');
+    const btn = $('npPublish');
+    busy(btn, true, 'Publication…');
+    const uploaded = [];
+    try {
+      for (const [i, f] of npFiles.entries()) {
+        btn.textContent = `Envoi ${i + 1}/${npFiles.length}…`;
+        uploaded.push(await uploadImage(f, 'posts'));
+      }
+      btn.textContent = 'Publication…';
+      const { error } = await sb.from('posts').insert({
+        images: uploaded,
+        caption: $('npCaption').value.trim() || null,
+        location: $('npLocation').value.trim() || null,
+        taken_on: $('npDate').value || null,
+        runner_id: $('npRunner').value || null,
+      });
+      if (error) throw error;
+      toast('Publication en ligne 🎉');
+      closeNewPost();
+      await loadPage();
+    } catch (e) {
+      const paths = uploaded.map(u => u.match(/\/public\/images\/(.+)$/)?.[1]).filter(Boolean);
+      if (paths.length) sb.storage.from('images').remove(paths);   // pas de fichiers orphelins
+      toast('Erreur : ' + e.message, 'error');
+    }
+    busy(btn, false);
+  });
+
+  initPage({ requireAuth: true, onReady: loadPage });
+</script>
+</body>
+</html>

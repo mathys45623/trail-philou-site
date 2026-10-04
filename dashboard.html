@@ -683,14 +683,14 @@
   // ─── MESSAGES ───
   async function loadMessages() {
     const { data, error } = await sb.from('comments')
-      .select('id, message, created_at, race_id, profiles(full_name), races(name)')
+      .select('id, message, created_at, race_id, post_id, profiles(full_name), races(name)')
       .order('created_at', { ascending: false }).limit(200);
     if (error) toast('Erreur : ' + error.message, 'error');
     const rows = data || [];
     $('msgTable').innerHTML = rows.length ? rows.map(c => `<tr>
       <td><strong>${esc(c.profiles?.full_name || 'Membre')}</strong></td>
       <td style="max-width:420px;white-space:pre-line">${esc(c.message)}</td>
-      <td>${c.race_id ? `<span class="badge badge-blue">${esc(c.races?.name || 'Course')}</span>` : '<span class="badge badge-orange">Livre d’or</span>'}</td>
+      <td>${c.race_id ? `<span class="badge badge-blue">${esc(c.races?.name || 'Course')}</span>` : c.post_id ? '<a class="badge badge-violet" href="photos.html#' + c.post_id + '" target="_blank">📸 Photo</a>' : '<span class="badge badge-orange">Livre d’or</span>'}</td>
       <td style="white-space:nowrap" title="${esc(new Date(c.created_at).toLocaleString('fr-FR'))}">${fmtRelative(c.created_at)}</td>
       <td class="td-actions"><button class="btn btn-danger btn-sm btn-icon" title="Supprimer" onclick="deleteMessage('${c.id}')">🗑️</button></td>
     </tr>`).join('') : '<tr><td colspan="5" class="td-empty">Aucun message pour l’instant.</td></tr>';

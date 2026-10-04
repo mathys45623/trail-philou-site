@@ -215,6 +215,7 @@ const NAV = [
   { page: 'past', href: 'courses-terminees.html', icon: '🏆', label: 'Courses terminées' },
   { page: 'upcoming', href: 'prochaines-courses.html', icon: '🗓️', label: 'Prochaines courses' },
   { page: 'gear', href: 'materiel.html', icon: '🎒', label: 'Matériel' },
+  { page: 'photos', href: 'photos.html', icon: '📸', label: 'Photos rando' },
   { section: 'Communauté' },
   { page: 'guestbook', href: 'livre-dor.html', icon: '💬', label: 'Livre d\'or' },
 ];
@@ -538,11 +539,11 @@ function mediaSections(race) {
 // LIVRE D'OR & COMMENTAIRES
 // raceId null = livre d'or ; sinon commentaires d'une course
 // ═══════════════════════════════════════
-async function mountComments(el, { raceId = null, placeholder = 'Écris ton message…', limit = 100 } = {}) {
+async function mountComments(el, { raceId = null, postId = null, placeholder = 'Écris ton message…', limit = 100, onChange = null } = {}) {
   const query = sb.from('comments')
     .select('id, message, created_at, user_id, profiles(full_name, role)')
     .order('created_at', { ascending: false }).limit(limit);
-  const { data, error } = await (raceId ? query.eq('race_id', raceId) : query.is('race_id', null));
+  const { data, error } = await (raceId ? query.eq('race_id', raceId) : postId ? query.eq('post_id', postId) : query.is('race_id', null).is('post_id', null));
   const list = data || [];
 
   const form = currentUser
@@ -561,7 +562,7 @@ async function mountComments(el, { raceId = null, placeholder = 'Écris ton mess
       : '<div class="cm-empty">Aucun message pour l\'instant. Sois le premier ! ✨</div>'}</div>`;
 
   el.querySelector('.cm-login button')?.addEventListener('click', () => {
-    onAuthed = () => mountComments(el, { raceId, placeholder, limit });
+    onAuthed = () => mountComments(el, { raceId, postId, placeholder, limit, onChange });
     openAuth();
   });
 
@@ -576,11 +577,12 @@ async function mountComments(el, { raceId = null, placeholder = 'Écris ton mess
       if (!message) return;
       const btn = f.querySelector('button');
       busy(btn, true, 'Envoi…');
-      const { error } = await sb.from('comments').insert({ message, race_id: raceId });
+      const { error } = await sb.from('comments').insert({ message, race_id: raceId, post_id: postId });
       busy(btn, false);
       if (error) return toast(error.message.includes('Trop de messages') ? 'Doucement ! Attends une minute avant de reposter.' : 'Erreur : ' + error.message, 'error');
       toast('Message publié ✅');
-      mountComments(el, { raceId, placeholder, limit });
+      onChange?.();
+      mountComments(el, { raceId, postId, placeholder, limit, onChange });
     });
   }
 
@@ -589,6 +591,7 @@ async function mountComments(el, { raceId = null, placeholder = 'Écris ton mess
     const { error } = await sb.from('comments').delete().eq('id', b.dataset.del);
     if (error) return toast('Erreur : ' + error.message, 'error');
     b.closest('.cm-item').remove();
+    onChange?.();
     toast('Message supprimé');
   }));
 }

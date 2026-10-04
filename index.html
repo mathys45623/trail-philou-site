@@ -348,7 +348,7 @@
   async function loadGuestbookPreview() {
     const { data } = await sb.from('comments')
       .select('id, message, created_at, user_id, profiles(full_name, role)')
-      .is('race_id', null).order('created_at', { ascending: false }).limit(3);
+      .is('race_id', null).is('post_id', null).order('created_at', { ascending: false }).limit(3);
     document.getElementById('homeGuestbook').innerHTML = data?.length
       ? data.map(commentHTML).join('').replace(/<button class="cm-del"[^>]*>.*?<\/button>/g, '')
       : '<div class="cm-empty">Aucun message pour l\'instant. Sois le premier à encourager l\'équipe ! ✨</div>';
