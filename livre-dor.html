@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Livre d'or — Trail Philou</title>
-  <meta name="description" content="Laisse un mot d'encouragement à Philou." />
+  <title>Livre d'or — Trail Team</title>
+  <meta name="description" content="Laisse un mot d'encouragement à l'équipe Trail Team." />
   <meta name="theme-color" content="#07090d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -21,7 +21,7 @@
   <div class="page-header">
     <div class="page-eyebrow">💬 Communauté</div>
     <h1 class="page-title">Livre d'or</h1>
-    <p class="page-sub">Un mot d'encouragement avant une course, un souvenir de sentier partagé, une question sur le matériel ? Laisse ton message, Philou lit tout.</p>
+    <p class="page-sub">Un mot d'encouragement avant une course, un souvenir de sentier partagé, une question sur le matériel ? Laisse ton message, toute l’équipe le lira.</p>
   </div>
   <div class="page-content">
     <div class="guestbook" id="guestbook"><div class="skeleton" style="min-height:120px"></div></div>
@@ -30,7 +30,7 @@
 
 <script src="shared.js"></script>
 <script>
-  const mount = () => mountComments(document.getElementById('guestbook'), { placeholder: 'Laisse un mot à Philou…' });
+  const mount = () => mountComments(document.getElementById('guestbook'), { placeholder: 'Laisse un mot à l’équipe…' });
   document.addEventListener('authchange', mount);
   initPage({ onReady: mount });
 </script>

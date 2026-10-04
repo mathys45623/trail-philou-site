@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trail Philou</title>
-  <meta name="description" content="Trail Philou — l'équipe Philou, Lolo et Mat : courses, résultats, statistiques et matériel." />
+  <title>Trail Team</title>
+  <meta name="description" content="Trail Team — l'équipe Philou, Lolo et Mat : courses, résultats, statistiques et matériel." />
   <meta name="theme-color" content="#07090d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -25,7 +25,7 @@
     .hero-inner > :nth-child(4) { animation-delay: 0.3s; }
     .hero-ridge g { will-change: transform; transition: transform 0.2s linear; }
     .hero-visual { perspective: 1100px; }
-    .fan { position: relative; aspect-ratio: 1 / 1; transform-style: preserve-3d; transition: transform 0.3s cubic-bezier(.2,.8,.2,1); transform: rotateX(var(--prx, 0deg)) rotateY(var(--pry, 0deg)); }
+    .fan { position: relative; aspect-ratio: 1 / 1; cursor: pointer; transition: transform 0.3s cubic-bezier(.2,.8,.2,1); transform: rotateX(var(--prx, 0deg)) rotateY(var(--pry, 0deg)); }
     .fan-card {
       position: absolute; left: 22%; right: 22%; top: 6%; bottom: 6%; z-index: var(--z);
       border-radius: 26px; overflow: hidden; text-decoration: none; color: #fff;
@@ -38,7 +38,7 @@
     }
     @keyframes fanIn { from { opacity: 0; translate: 0 40px; } to { opacity: 1; translate: 0 0; } }
     .fan:hover .fan-card { transform: translateX(calc(var(--o) * 46%)) rotate(calc(var(--o) * 13deg)); }
-    .fan .fan-card:hover { z-index: 20; transform: translateX(calc(var(--o) * 46%)) rotate(calc(var(--o) * 6deg)) translateY(-6%) scale(1.06); }
+    .fan .fan-card.is-active { z-index: 20; transform: translateX(calc(var(--o) * 46%)) rotate(calc(var(--o) * 6deg)) translateY(-6%) scale(1.06); }
     .fan-card img { width: 100%; height: 100%; object-fit: cover; }
     .fan-initial { width: 100%; height: 100%; display: grid; place-items: center; font-family: var(--font-display); font-size: 7rem; font-weight: 800; color: #0b0d12; background: linear-gradient(160deg, var(--rc), color-mix(in srgb, var(--rc) 35%, #0d1219)); }
     .fan-card .fan-label { position: absolute; left: 0; right: 0; bottom: 0; padding: 2.5rem 1rem 0.9rem; background: linear-gradient(180deg, transparent, rgba(7,9,13,0.92)); }
@@ -199,7 +199,6 @@
 
     <div class="hero-visual">
       <div class="fan" id="heroFan"></div>
-      <div class="float-card fc-2"><div class="fc-val" id="fcRunners">—</div><div class="fc-lbl">coureurs</div></div>
     </div>
     <a href="#stats" class="scroll-hint" aria-label="Défiler"><span></span>Défiler</a>
   </section>
@@ -272,6 +271,8 @@
       </a>`;
     }).join('');
 
+    setupFan(document.getElementById('heroFan'));
+
     // Totaux de l'équipe
     const races = past || [];
     const t = teamTotals(runners, races);
@@ -280,7 +281,6 @@
     countUp(document.getElementById('sKm'), t.km);
     countUp(document.getElementById('sDplus'), t.dplus);
     countUp(document.getElementById('sYears'), yearsSum);
-    document.getElementById('fcRunners').textContent = n;
 
     // Cartes des coureurs
     document.getElementById('teamGrid').innerHTML = runners.map(r => {
@@ -322,6 +322,27 @@
       document.getElementById('nextSection').style.display = '';
       startLiveCount(parseDate(r.date));
     }
+  }
+
+  // Carte mise en avant selon la position de la souris (zones gauche / centre / droite) :
+  // la zone ne bouge pas avec les cartes, donc pas de clignotement au survol
+  function setupFan(fan) {
+    const cards = [...fan.querySelectorAll('.fan-card')];
+    if (!cards.length) return;
+    let active = null;
+    const setActive = c => { if (c === active) return; active?.classList.remove('is-active'); active = c; c?.classList.add('is-active'); };
+    fan.addEventListener('pointermove', e => {
+      const r = fan.getBoundingClientRect();
+      const i = Math.min(cards.length - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * cards.length)));
+      setActive(cards[i]);
+    });
+    fan.addEventListener('pointerleave', () => setActive(null));
+    // un clic ouvre la carte mise en avant, même si une autre est dessus
+    fan.addEventListener('click', e => {
+      if (!active) return;
+      e.preventDefault();
+      location.href = active.href;
+    });
   }
 
   async function loadGuestbookPreview() {

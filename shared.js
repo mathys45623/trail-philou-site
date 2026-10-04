@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════
-// TRAIL PHILOU — JS PARTAGÉ
+// TRAIL TEAM — JS PARTAGÉ
 // Client Supabase, helpers, menu et connexion communs à toutes les pages.
 // ═══════════════════════════════════════
 
@@ -214,7 +214,7 @@ const NAV = [
   { page: 'stats', href: 'statistiques.html', icon: '📊', label: 'Statistiques' },
   { page: 'past', href: 'courses-terminees.html', icon: '🏆', label: 'Courses terminées' },
   { page: 'upcoming', href: 'prochaines-courses.html', icon: '🗓️', label: 'Prochaines courses' },
-  { page: 'gear', href: 'materiel.html', icon: '🎒', label: 'Mon matériel' },
+  { page: 'gear', href: 'materiel.html', icon: '🎒', label: 'Matériel' },
   { section: 'Communauté' },
   { page: 'guestbook', href: 'livre-dor.html', icon: '💬', label: 'Livre d\'or' },
 ];
@@ -225,7 +225,7 @@ function renderShell() {
     ? `<div class="sidebar-section">${n.section}</div>`
     : `<a href="${n.href}" class="nav-link${n.page === page ? ' active' : ''}"><span class="ni">${n.icon}</span>${n.label}</a>`
   ).join('');
-  const logo = `<a href="index.html" class="sidebar-logo"><div class="logo-mark">${LOGO_SVG}</div><div><div class="logo">TRAIL PHILOU</div><div class="logo-sub">Mon univers trail</div></div></a>`;
+  const logo = `<a href="index.html" class="sidebar-logo"><div class="logo-mark">${LOGO_SVG}</div><div><div class="logo">TRAIL TEAM</div><div class="logo-sub">Notre univers trail</div></div></a>`;
 
   document.body.insertAdjacentHTML('afterbegin', `
     <header class="mobile-bar">

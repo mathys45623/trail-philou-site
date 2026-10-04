@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Coureur — Trail Philou</title>
+  <title>Coureur — Trail Team</title>
   <meta name="theme-color" content="#07090d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -62,7 +62,7 @@
     const r = runnersCache.find(x => x.slug === slug) || runnersCache[0];
     const page = document.getElementById('runnerPage');
     if (!r) { page.innerHTML = '<div class="not-found"><div class="empty-icon">🏃</div><p>Coureur introuvable.</p><a class="btn btn-primary" href="index.html" style="margin-top:1rem">← Accueil</a></div>'; return; }
-    document.title = `${r.name} — Trail Philou`;
+    document.title = `${r.name} — Trail Team`;
     page.style.setProperty('--rc', safeColor(r.color));
 
     const today = new Date().toISOString().slice(0, 10);
@@ -88,7 +88,7 @@
         <div class="rp-info">
           <div class="rp-eyebrow">${esc(r.tagline || 'Traileur')}</div>
           <h1 class="rp-name">${esc(r.name)}</h1>
-          <p class="rp-bio">${esc(r.bio || `${r.name} fait partie de l'équipe Trail Philou.`)}</p>
+          <p class="rp-bio">${esc(r.bio || `${r.name} fait partie de l'équipe Trail Team.`)}</p>
           <div class="rp-actions">
             <a class="btn btn-primary" href="courses-terminees.html?r=${encodeURIComponent(r.slug)}">🏆 Ses courses</a>
             <a class="btn btn-outline" href="statistiques.html?r=${encodeURIComponent(r.slug)}">📊 Ses stats</a>
