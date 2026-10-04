@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coureur — Trail Philou</title>
+  <meta name="theme-color" content="#07090d" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .rp-hero { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 2.5rem; align-items: center; padding: 3.5rem 3rem 2.5rem; overflow: hidden; }
+    .rp-hero::before { content: ''; position: absolute; inset: -40% -10% auto auto; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--rc) 28%, transparent), transparent 65%); pointer-events: none; z-index: -1; }
+    .rp-photo { position: relative; width: 240px; aspect-ratio: 4/5; border-radius: 28px; overflow: hidden; border: 1px solid var(--border-2); box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 4px color-mix(in srgb, var(--rc) 55%, transparent); transform: rotate(-2deg); transition: transform 0.4s cubic-bezier(.2,.8,.2,1); background: var(--surface-2); animation: slideUp 0.7s ease both; }
+    .rp-photo:hover { transform: rotate(0) scale(1.03); }
+    .rp-photo img { width: 100%; height: 100%; object-fit: cover; }
+    .rp-photo .no-photo { width: 100%; height: 100%; display: grid; place-items: center; font-family: var(--font-display); font-size: 6rem; font-weight: 800; color: #0b0d12; background: linear-gradient(160deg, var(--rc), color-mix(in srgb, var(--rc) 40%, #0d1219)); }
+    .rp-info > * { animation: slideUp 0.7s cubic-bezier(.2,.8,.2,1) both; }
+    .rp-info > :nth-child(2) { animation-delay: 0.08s; } .rp-info > :nth-child(3) { animation-delay: 0.16s; } .rp-info > :nth-child(4) { animation-delay: 0.24s; }
+    .rp-eyebrow { color: var(--rc); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; }
+    .rp-name { font-family: var(--font-display); font-size: clamp(3rem, 7vw, 5.5rem); font-weight: 800; letter-spacing: -0.05em; line-height: 0.95; margin: 0.4rem 0 0.9rem; }
+    .rp-bio { color: var(--muted); font-size: 1.05rem; line-height: 1.75; max-width: 560px; white-space: pre-line; }
+    .rp-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1.5rem; }
+    .rp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; padding: 0 3rem; }
+    .rp-stat { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.3rem 1.4rem; }
+    .rp-stat .v { font-family: var(--font-display); font-size: clamp(1.7rem, 3vw, 2.3rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+    .rp-stat .v small { font-size: 0.45em; color: var(--muted); margin-left: 0.2rem; }
+    .rp-stat .l { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 0.45rem; font-weight: 600; }
+    .rp-stat:first-child .v { color: var(--rc); }
+    .rp-section { padding: 3rem 3rem 0; }
+    .rp-section h2 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+    .rp-section .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+    .mini-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .mini { position: relative; display: flex; gap: 1rem; align-items: center; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); text-decoration: none; color: inherit; transition: border-color 0.2s, transform 0.2s; }
+    .mini:hover { border-color: color-mix(in srgb, var(--rc) 60%, transparent); transform: translateY(-2px); }
+    .mini-date { flex-shrink: 0; width: 56px; text-align: center; border-radius: 12px; padding: 0.45rem 0; background: color-mix(in srgb, var(--rc) 15%, transparent); color: var(--text); }
+    .mini-date b { display: block; font-family: var(--font-display); font-size: 1.35rem; line-height: 1; }
+    .mini-date span { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .mini-name { font-weight: 700; color: var(--text); line-height: 1.25; }
+    .mini-sub { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+    .mini-right { margin-left: auto; text-align: right; font-family: var(--font-display); font-weight: 800; color: var(--rc); white-space: nowrap; }
+    .rp-empty { color: var(--dim); background: var(--surface); border: 1px dashed var(--border-2); border-radius: var(--r-md); padding: 1.5rem; text-align: center; font-size: 0.92rem; }
+    .not-found { text-align: center; padding: 6rem 1rem; }
+    @media (max-width: 900px) {
+      .rp-hero { grid-template-columns: 1fr; padding: 2rem 1.25rem 1.5rem; gap: 1.75rem; }
+      .rp-photo { width: min(220px, 60vw); }
+      .rp-stats { grid-template-columns: repeat(2, 1fr); padding: 0 1.25rem; }
+      .rp-section { padding: 2.5rem 1.25rem 0; }
+    }
+  </style>
+</head>
+<body data-page="runner">
+
+<main class="main" id="runnerPage">
+  <div class="page-content"><div class="skeleton" style="min-height:320px;margin-top:2rem"></div></div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+  async function loadRunnerPage() {
+    const slug = new URLSearchParams(location.search).get('r');
+    const r = runnersCache.find(x => x.slug === slug) || runnersCache[0];
+    const page = document.getElementById('runnerPage');
+    if (!r) { page.innerHTML = '<div class="not-found"><div class="empty-icon">🏃</div><p>Coureur introuvable.</p><a class="btn btn-primary" href="index.html" style="margin-top:1rem">← Accueil</a></div>'; return; }
+    document.title = `${r.name} — Trail Philou`;
+    page.style.setProperty('--rc', safeColor(r.color));
+
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: past }, { data: next }, { data: gear }] = await Promise.all([
+      sb.from('races').select('*').eq('runner_id', r.id).eq('type', 'past').order('date', { ascending: false }),
+      sb.from('races').select('*').eq('runner_id', r.id).eq('type', 'upcoming').gte('date', today).order('date').limit(3),
+      sb.from('materiel').select('id, nom, marque, categorie, image_url').eq('runner_id', r.id).order('categorie').limit(6),
+    ]);
+    const t = computeTotals(r, past || []);
+    const mini = (race, right) => {
+      const d = parseDate(race.date);
+      return `<a class="mini" href="${race.type === 'past' ? 'courses-terminees' : 'prochaines-courses'}.html?r=${encodeURIComponent(r.slug)}">
+        <div class="mini-date"><b>${d.getDate()}</b><span>${d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}</span></div>
+        <div><div class="mini-name">${esc(race.name)}</div><div class="mini-sub">${esc(race.location || '')}${race.distance ? ' · ' + esc(race.distance) + ' km' : ''}${race.dplus ? ' · ' + fmtNum(race.dplus) + ' m D+' : ''}</div></div>
+        <div class="mini-right">${right}</div>
+      </a>`;
+    };
+    const insta = r.instagram ? `https://www.instagram.com/${encodeURIComponent(r.instagram.replace(/^@/, ''))}` : null;
+
+    page.innerHTML = `
+      <section class="rp-hero">
+        <div class="rp-photo">${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="${esc(r.name)}" />` : `<div class="no-photo">${esc(r.name.charAt(0).toUpperCase())}</div>`}</div>
+        <div class="rp-info">
+          <div class="rp-eyebrow">${esc(r.tagline || 'Traileur')}</div>
+          <h1 class="rp-name">${esc(r.name)}</h1>
+          <p class="rp-bio">${esc(r.bio || `${r.name} fait partie de l'équipe Trail Philou.`)}</p>
+          <div class="rp-actions">
+            <a class="btn btn-primary" href="courses-terminees.html?r=${encodeURIComponent(r.slug)}">🏆 Ses courses</a>
+            <a class="btn btn-outline" href="statistiques.html?r=${encodeURIComponent(r.slug)}">📊 Ses stats</a>
+            ${insta ? `<a class="btn btn-outline" href="${esc(insta)}" target="_blank" rel="noopener">📸 Instagram</a>` : ''}
+          </div>
+        </div>
+      </section>
+      <div class="rp-stats">
+        <div class="rp-stat"><div class="v" id="rpFin"></div><div class="l">Courses finies</div></div>
+        <div class="rp-stat"><div class="v" id="rpKm"></div><div class="l">Kilomètres</div></div>
+        <div class="rp-stat"><div class="v" id="rpDplus"></div><div class="l">Mètres D+</div></div>
+        <div class="rp-stat"><div class="v" id="rpYears"></div><div class="l">Années de trail</div></div>
+      </div>
+      <section class="rp-section">
+        <div class="section-head"><h2>🗓️ Prochains objectifs</h2><a class="btn btn-outline btn-sm" href="prochaines-courses.html?r=${encodeURIComponent(r.slug)}">Tout voir →</a></div>
+        ${next?.length ? `<div class="mini-list">${next.map(x => { const d = daysUntil(x.date); return mini(x, d === 0 ? 'Jour J' : 'J-' + d); }).join('')}</div>` : `<div class="rp-empty">Pas d'objectif programmé pour l'instant.</div>`}
+      </section>
+      <section class="rp-section">
+        <div class="section-head"><h2>🏆 Dernières courses</h2><a class="btn btn-outline btn-sm" href="courses-terminees.html?r=${encodeURIComponent(r.slug)}">Tout voir →</a></div>
+        ${past?.length ? `<div class="mini-list">${past.slice(0, 6).map(x => mini(x, x.dnf ? '<span class="badge badge-dnf">DNF</span>' : esc(x.finish_time || ''))).join('')}</div>` : `<div class="rp-empty">Aucune course enregistrée pour l'instant.</div>`}
+      </section>
+      <section class="rp-section" style="padding-bottom:4rem">
+        <div class="section-head"><h2>🎒 Son matériel</h2><a class="btn btn-outline btn-sm" href="materiel.html?r=${encodeURIComponent(r.slug)}">Tout voir →</a></div>
+        ${gear?.length ? `<div class="mini-list">${gear.map(g => `<a class="mini" href="materiel.html?r=${encodeURIComponent(r.slug)}">
+            ${g.image_url ? `<img src="${esc(g.image_url)}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover" loading="lazy" />` : '<div class="mini-date" style="display:grid;place-items:center;font-size:1.5rem;height:56px">🎒</div>'}
+            <div><div class="mini-name">${esc(g.nom)}</div><div class="mini-sub">${esc([g.marque, g.categorie].filter(Boolean).join(' · '))}</div></div></a>`).join('')}</div>` : `<div class="rp-empty">Pas encore de matériel renseigné.</div>`}
+      </section>`;
+
+    countUp(document.getElementById('rpFin'), t.fin);
+    countUp(document.getElementById('rpKm'), t.km);
+    countUp(document.getElementById('rpDplus'), t.dplus);
+    countUp(document.getElementById('rpYears'), t.years, '<small>ans</small>');
+  }
+
+  initPage({ onReady: loadRunnerPage });
+</script>
+</body>
+</html>

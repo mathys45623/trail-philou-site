@@ -31,6 +31,19 @@
     .hint-box b { color: var(--accent-2); }
     .check-row { flex-direction: row; align-items: flex-start; gap: 0.6rem; cursor: pointer; font-size: 0.84rem; color: var(--muted); padding: 0.75rem 0.9rem; background: var(--bg-2); border: 1px solid var(--border-2); border-radius: var(--r-sm); }
     .check-row input { accent-color: var(--accent); width: 17px; height: 17px; margin-top: 1px; flex-shrink: 0; }
+    .runner-bar { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; padding: 0.9rem 1rem; margin-bottom: 1.1rem; background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r-lg); }
+    .runner-bar-lbl { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--dim); }
+    .tabs .sep { width: 1px; background: var(--border-2); margin: 0 0.3rem; }
+    .admin-only { display: none !important; }
+    body.is-admin .tabs .admin-only { display: inline-flex !important; }
+    body.is-admin .tabs .sep.admin-only { display: block !important; }
+    body.is-admin .panel.admin-only.active { display: block !important; }
+    .color-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .color-row input[type=color] { width: 46px; height: 40px; border: 1px solid var(--border-2); border-radius: 10px; background: var(--bg-2); padding: 3px; cursor: pointer; }
+    .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; background: var(--c); }
+    .swatch:hover { border-color: #fff; }
+    .add-runner { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid var(--border); }
+    .add-runner .form-input { max-width: 240px; }
     .modal-section { grid-column: 1 / -1; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--dim); margin-top: 0.6rem; padding-top: 1rem; border-top: 1px solid var(--border); }
   </style>
 </head>
@@ -40,22 +53,28 @@
   <div class="page-header">
     <div class="page-eyebrow">⚙️ Administration</div>
     <h1 class="page-title">Tableau de bord</h1>
-    <p class="page-sub">Modifie le contenu du site : accueil, statistiques, courses et matériel.</p>
+    <p class="page-sub" id="dashSub">Gère le profil, les courses et le matériel de chaque coureur.</p>
   </div>
   <div class="page-content" id="dash" style="display:none">
+    <div class="runner-bar" id="runnerBar">
+      <span class="runner-bar-lbl">Coureur</span>
+      <div class="filters" id="runnerPick" style="margin:0"></div>
+    </div>
     <div class="tabs" id="tabs">
-      <button class="chip active" data-panel="accueil">🏠 Accueil</button>
-      <button class="chip" data-panel="stats">📊 Statistiques</button>
+      <button class="chip active" data-panel="profil">👤 Profil &amp; stats</button>
       <button class="chip" data-panel="past">🏆 Courses terminées</button>
       <button class="chip" data-panel="upcoming">🗓️ Prochaines courses</button>
       <button class="chip" data-panel="materiel">🎒 Matériel</button>
-      <button class="chip" data-panel="messages">💬 Messages</button>
+      <span class="sep admin-only"></span>
+      <button class="chip admin-only" data-panel="accueil">🏠 Accueil du site</button>
+      <button class="chip admin-only" data-panel="coureurs">👥 Coureurs</button>
+      <button class="chip admin-only" data-panel="messages">💬 Messages</button>
     </div>
 
     <!-- ── ACCUEIL ── -->
-    <section class="panel active" id="panel-accueil">
+    <section class="panel admin-only" id="panel-accueil">
       <div class="card">
-        <div class="card-header"><div class="card-title">Contenu de la page d'accueil</div><a class="btn btn-outline btn-sm" href="index.html" target="_blank">👁️ Voir</a></div>
+        <div class="card-header"><div class="card-title">Texte de présentation de l'équipe (page d'accueil)</div><a class="btn btn-outline btn-sm" href="index.html" target="_blank">👁️ Voir</a></div>
         <div class="card-body">
           <div class="form-grid">
             <div class="form-group full">
@@ -64,18 +83,8 @@
               <div class="form-hint">Mets &lt;br&gt; pour aller à la ligne : la dernière ligne s'affiche en dégradé orange.</div>
             </div>
             <div class="form-group full">
-              <label class="form-label" for="pfBio">Présentation</label>
-              <textarea class="form-textarea" id="pfBio" rows="5" placeholder="Parle de toi, de ta passion pour le trail…"></textarea>
-            </div>
-            <div class="form-group full">
-              <label class="form-label">Photo de profil</label>
-              <div class="photo-row">
-                <img id="pfPhotoPreview" class="preview-photo" alt="" style="display:none" />
-                <div>
-                  <input type="file" id="pfPhotoFile" accept="image/*" />
-                  <div class="form-hint" style="margin-top:0.4rem">JPG, PNG ou WebP · compressée automatiquement</div>
-                </div>
-              </div>
+              <label class="form-label" for="pfBio">Présentation de l'équipe</label>
+              <textarea class="form-textarea" id="pfBio" rows="4" placeholder="Qui vous êtes, ce qui vous réunit…"></textarea>
             </div>
           </div>
           <div class="save-bar"><button class="btn btn-primary" id="btnSaveAccueil">💾 Enregistrer</button></div>
@@ -83,25 +92,57 @@
       </div>
     </section>
 
-    <!-- ── STATS ── -->
-    <section class="panel" id="panel-stats">
+    <!-- ── PROFIL DU COUREUR ── -->
+    <section class="panel active" id="panel-profil">
       <div class="card">
-        <div class="card-header"><div class="card-title">Statistiques affichées sur le site</div></div>
+        <div class="card-header"><div class="card-title" id="profilTitle">Profil</div><a class="btn btn-outline btn-sm" id="profilView" href="#" target="_blank">👁️ Voir sa page</a></div>
         <div class="card-body">
-          <div class="hint-box">Les statistiques se calculent <b>automatiquement</b> à partir de tes courses terminées. Indique seulement ici ton <b>historique d'avant le site</b> (les courses que tu ne veux pas saisir une par une) : il s'ajoute aux courses enregistrées.</div>
           <div class="form-grid">
-            <div class="modal-section" style="margin-top:0;padding-top:0;border:none">Historique avant le site</div>
-            <div class="form-group"><label class="form-label" for="stRaces">Courses finies</label><input class="form-input" type="number" min="0" id="stRaces" /></div>
-            <div class="form-group"><label class="form-label" for="stDnf">Abandons (DNF)</label><input class="form-input" type="number" min="0" id="stDnf" /></div>
-            <div class="form-group"><label class="form-label" for="stKm">Kilomètres</label><input class="form-input" type="number" min="0" id="stKm" /></div>
-            <div class="form-group"><label class="form-label" for="stDplus">Mètres de D+</label><input class="form-input" type="number" min="0" id="stDplus" /></div>
-            <div class="modal-section">Ancienneté</div>
+            <div class="form-group"><label class="form-label" for="rpName">Prénom / surnom *</label><input class="form-input" id="rpName" maxlength="40" /></div>
+            <div class="form-group"><label class="form-label" for="rpTagline">Accroche</label><input class="form-input" id="rpTagline" maxlength="60" placeholder="Ultra-trailer, amoureux des Alpes…" /></div>
+            <div class="form-group full"><label class="form-label" for="rpBio">Présentation</label><textarea class="form-textarea" id="rpBio" rows="4" placeholder="Son parcours, ses courses fétiches, ses objectifs…"></textarea></div>
+            <div class="form-group full">
+              <label class="form-label">Photo</label>
+              <div class="photo-row">
+                <img id="rpPhotoPreview" class="preview-photo" alt="" style="display:none" />
+                <div><input type="file" id="rpPhotoFile" accept="image/*" /><div class="form-hint" style="margin-top:0.4rem">Compressée automatiquement</div></div>
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label" for="rpInsta">Instagram</label><input class="form-input" id="rpInsta" placeholder="nom d'utilisateur, sans @" /></div>
+            <div class="form-group"><label class="form-label">Couleur</label>
+              <div class="color-row"><input type="color" id="rpColor" value="#ff6a2b" />
+                <span class="swatch" style="--c:#ff6a2b" data-c="#ff6a2b"></span><span class="swatch" style="--c:#5cc8ff" data-c="#5cc8ff"></span><span class="swatch" style="--c:#34d399" data-c="#34d399"></span><span class="swatch" style="--c:#a78bfa" data-c="#a78bfa"></span><span class="swatch" style="--c:#f472b6" data-c="#f472b6"></span><span class="swatch" style="--c:#facc15" data-c="#facc15"></span>
+              </div>
+            </div>
+
+            <div class="modal-section">Statistiques</div>
+            <div class="form-group full"><div class="hint-box" style="margin:0">Les stats se calculent <b>automatiquement</b> à partir des courses terminées. Indique ici seulement l'<b>historique d'avant le site</b> (les courses que tu ne veux pas saisir une par une).</div></div>
+            <div class="form-group"><label class="form-label" for="stRaces">Courses finies avant le site</label><input class="form-input" type="number" min="0" id="stRaces" /></div>
+            <div class="form-group"><label class="form-label" for="stDnf">Abandons avant le site</label><input class="form-input" type="number" min="0" id="stDnf" /></div>
+            <div class="form-group"><label class="form-label" for="stKm">Kilomètres avant le site</label><input class="form-input" type="number" min="0" id="stKm" /></div>
+            <div class="form-group"><label class="form-label" for="stDplus">Mètres D+ avant le site</label><input class="form-input" type="number" min="0" id="stDplus" /></div>
             <div class="form-group"><label class="form-label" for="stStart">Année de début du trail</label><input class="form-input" type="number" min="1950" max="2100" id="stStart" placeholder="ex : 2016" /></div>
           </div>
           <div class="modal-section" style="margin-top:1.4rem">Aperçu de ce qui s'affiche sur le site</div>
           <div class="kpi-grid" id="statsPreview" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:.8rem"></div>
-          <div class="save-bar"><button class="btn btn-primary" id="btnSaveStats">💾 Enregistrer</button></div>
+          <div class="save-bar"><button class="btn btn-primary" id="btnSaveProfil">💾 Enregistrer</button></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ── COUREURS (admin) ── -->
+    <section class="panel admin-only" id="panel-coureurs">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Les coureurs de l'équipe</div></div>
+        <div class="card-body" style="padding-top:0;padding-bottom:0"><div class="hint-box" style="margin:1.2rem 0">Pour qu'un coureur gère lui-même ses courses : il crée un compte sur le site, puis tu cliques sur <b>🔗 Relier</b> et tu saisis son email. Il ne pourra modifier que son propre profil, ses courses et son matériel.</div></div>
+        <div class="table-wrap">
+          <table><thead><tr><th></th><th>Coureur</th><th>Adresse de sa page</th><th>Compte relié</th><th>Ordre</th><th></th></tr></thead>
+          <tbody id="runnersTable"><tr><td colspan="6" class="td-empty">Chargement…</td></tr></tbody></table>
+        </div>
+        <form class="add-runner" id="addRunner">
+          <input class="form-input" id="newRunnerName" placeholder="Prénom du nouveau coureur" maxlength="40" required />
+          <button class="btn btn-primary btn-sm" type="submit">+ Ajouter un coureur</button>
+        </form>
       </div>
     </section>
 
@@ -109,7 +150,7 @@
     <section class="panel" id="panel-past">
       <div class="card">
         <div class="card-header">
-          <div class="card-title">Courses terminées</div>
+          <div class="card-title">Courses terminées <span id="pastWho" style="color:var(--dim);font-weight:500"></span></div>
           <button class="btn btn-primary btn-sm" onclick="openRaceModal('past')">+ Ajouter une course</button>
         </div>
         <div class="table-wrap">
@@ -123,7 +164,7 @@
     <section class="panel" id="panel-upcoming">
       <div class="card">
         <div class="card-header">
-          <div class="card-title">Prochaines courses</div>
+          <div class="card-title">Prochaines courses <span id="upWho" style="color:var(--dim);font-weight:500"></span></div>
           <button class="btn btn-primary btn-sm" onclick="openRaceModal('upcoming')">+ Ajouter une course</button>
         </div>
         <div class="table-wrap">
@@ -137,7 +178,7 @@
     <section class="panel" id="panel-materiel">
       <div class="card">
         <div class="card-header">
-          <div class="card-title">Mon matériel</div>
+          <div class="card-title">Matériel</div>
           <button class="btn btn-primary btn-sm" onclick="openMatModal()">+ Ajouter un équipement</button>
         </div>
         <div class="table-wrap">
@@ -163,7 +204,7 @@
     <div class="gate">
       <div class="empty-icon">🔒</div>
       <h2>Accès réservé</h2>
-      <p>Cette page est réservée à l'administrateur du site.</p>
+      <p>Cette page est réservée à l'administrateur et aux coureurs de l'équipe. Si tu es coureur, demande à l'admin de relier ton compte à ton profil.</p>
       <a href="index.html" class="btn btn-primary">← Retour à l'accueil</a>
     </div>
   </div>
@@ -251,25 +292,50 @@
 <script>
   const $ = id => document.getElementById(id);
   const MAX_IMG = 30 * 1024 * 1024, MAX_VID = 50 * 1024 * 1024;
-  let currentPanel = 'accueil';
+  let currentPanel = 'profil';
   let raceCache = {};
+  let runner = null;   // coureur en cours d'édition
 
   // ─── ACCÈS ───
   initPage({ requireAuth: true, onReady: () => {
-    if (!isAdmin()) { $('gate').style.display = ''; return; }
+    if (!canManage()) { $('gate').style.display = ''; return; }
+    document.body.classList.toggle('is-admin', isAdmin());
     $('dash').style.display = '';
+    renderRunnerPick();
     const start = location.hash.slice(1);
-    loadPanel($('panel-' + start) ? start : 'accueil');
+    const allowed = $('panel-' + start) && (isAdmin() || !$('panel-' + start).classList.contains('admin-only'));
+    loadPanel(allowed ? start : 'profil');
   }});
+
+  // Coureurs modifiables : tous pour l'admin, sinon uniquement le sien
+  const editableRunners = () => isAdmin() ? runnersCache : runnersCache.filter(r => r.id === myRunner?.id);
+  function renderRunnerPick() {
+    const list = editableRunners();
+    const wanted = new URLSearchParams(location.search).get('r');
+    runner = list.find(r => r.slug === wanted) || list.find(r => r.id === runner?.id) || list.find(r => r.id === myRunner?.id) || list[0] || null;
+    $('runnerBar').style.display = list.length > 1 ? '' : 'none';
+    $('dashSub').textContent = isAdmin() ? 'Gère le profil, les courses et le matériel de chaque coureur.' : `Ton espace coureur, ${runner?.name || ''} : profil, courses et matériel.`;
+    $('runnerPick').innerHTML = list.map(r => `<button class="chip chip-runner${r.id === runner?.id ? ' active' : ''}" data-id="${r.id}" style="--rc:${safeColor(r.color)}">${runnerAvatar(r, 22)}${esc(r.name)}</button>`).join('');
+  }
+  $('runnerPick').addEventListener('click', e => {
+    const b = e.target.closest('[data-id]');
+    if (!b) return;
+    runner = runnersCache.find(r => r.id === b.dataset.id);
+    const u = new URL(location.href); u.searchParams.set('r', runner.slug); history.replaceState(null, '', u);
+    renderRunnerPick();
+    loadPanel(['accueil', 'coureurs', 'messages'].includes(currentPanel) ? 'profil' : currentPanel);
+  });
 
   // ─── ONGLETS ───
   $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-panel]'); if (b) loadPanel(b.dataset.panel); });
   function loadPanel(id) {
     currentPanel = id;
-    history.replaceState(null, '', '#' + id);
+    history.replaceState(null, '', location.search + '#' + id);
     document.querySelectorAll('#tabs .chip').forEach(b => b.classList.toggle('active', b.dataset.panel === id));
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + id));
-    ({ accueil: loadAccueil, stats: loadStats, past: loadPastTable, upcoming: loadUpcomingTable, materiel: loadMatTable, messages: loadMessages })[id]();
+    const scoped = ['profil', 'past', 'upcoming', 'materiel'].includes(id);
+    $('runnerBar').style.opacity = scoped ? '' : '0.45';
+    ({ accueil: loadAccueil, profil: loadProfil, coureurs: loadRunnersAdmin, past: loadPastTable, upcoming: loadUpcomingTable, materiel: loadMatTable, messages: loadMessages })[id]();
   }
 
   // ─── MODALS ───
@@ -303,67 +369,160 @@
   }
 
   // ─── ACCUEIL ───
-  previewFile($('pfPhotoFile'), $('pfPhotoPreview'));
   async function loadAccueil() {
-    const { data: p } = await sb.from('profiles').select('hero_title, bio, photo_url').eq('id', currentUser.id).maybeSingle();
+    const { data: p } = await sb.from('profiles').select('hero_title, bio').eq('id', currentUser.id).maybeSingle();
     $('pfHeroTitle').value = p?.hero_title || '';
     $('pfBio').value = p?.bio || '';
-    $('pfPhotoFile').value = '';
-    if (p?.photo_url) { $('pfPhotoPreview').src = p.photo_url; $('pfPhotoPreview').style.display = ''; }
   }
   $('btnSaveAccueil').addEventListener('click', async () => {
     const btn = $('btnSaveAccueil');
-    const file = $('pfPhotoFile').files[0];
-    if (file && !checkSize([file], MAX_IMG, 'image')) return;
     busy(btn, true, 'Enregistrement…');
-    const payload = { hero_title: $('pfHeroTitle').value.trim(), bio: $('pfBio').value.trim() };
-    try {
-      if (file) payload.photo_url = await uploadImage(file, 'profile');
-      const { error } = await sb.from('profiles').update(payload).eq('id', currentUser.id);
-      if (error) throw error;
-      toast('Page d\'accueil mise à jour ✅');
-      $('pfPhotoFile').value = '';
-    } catch (e) { toast('Erreur : ' + e.message, 'error'); }
+    const { error } = await sb.from('profiles').update({ hero_title: $('pfHeroTitle').value.trim(), bio: $('pfBio').value.trim() }).eq('id', currentUser.id);
     busy(btn, false);
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Page d\'accueil mise à jour ✅');
   });
 
-  // ─── STATS ───
-  let statsId = null, statsRaces = [];
+  // ─── PROFIL DU COUREUR ───
+  let profilRaces = [];
   const n = id => Math.max(0, parseInt($(id).value, 10) || 0);
   const statsForm = () => ({ races_before: n('stRaces'), dnf_before: n('stDnf'), km_before: n('stKm'), dplus_before: n('stDplus'), start_year: n('stStart') || null });
   function updatePreview() {
-    const t = computeTotals(statsForm(), statsRaces);
+    const t = computeTotals(statsForm(), profilRaces);
     $('statsPreview').innerHTML = [
       ['Courses finies', t.fin], ['Abandons', t.dnf], ['Départs', t.total],
       ['Kilomètres', t.km], ['Mètres D+', t.dplus], ['Années', t.years],
     ].map(([l, v]) => `<div class="kpi"><div class="kpi-val">${fmtNum(v)}</div><div class="kpi-lbl">${l}</div></div>`).join('');
   }
   ['stRaces', 'stDnf', 'stKm', 'stDplus', 'stStart'].forEach(id => $(id).addEventListener('input', updatePreview));
-  async function loadStats() {
-    const [{ data: s }, { data: races }] = await Promise.all([
-      sb.from('stats').select('*').order('id').limit(1).maybeSingle(),
-      sb.from('races').select('distance, dplus, dnf').eq('type', 'past'),
+  previewFile($('rpPhotoFile'), $('rpPhotoPreview'));
+  document.querySelectorAll('.swatch').forEach(sw => sw.addEventListener('click', () => $('rpColor').value = sw.dataset.c));
+
+  async function loadProfil() {
+    if (!runner) return;
+    const [{ data: r }, { data: races }] = await Promise.all([
+      sb.from('runners').select('*').eq('id', runner.id).single(),
+      sb.from('races').select('distance, dplus, dnf').eq('type', 'past').eq('runner_id', runner.id),
     ]);
-    statsId = s?.id || null;
-    statsRaces = races || [];
-    $('stRaces').value = s?.races_before ?? 0;
-    $('stDnf').value = s?.dnf_before ?? 0;
-    $('stKm').value = s?.km_before ?? 0;
-    $('stDplus').value = s?.dplus_before ?? 0;
-    $('stStart').value = s?.start_year ?? '';
+    profilRaces = races || [];
+    $('profilTitle').textContent = `Profil de ${r.name}`;
+    $('profilView').href = `coureur.html?r=${encodeURIComponent(r.slug)}`;
+    $('rpName').value = r.name || '';
+    $('rpTagline').value = r.tagline || '';
+    $('rpBio').value = r.bio || '';
+    $('rpInsta').value = r.instagram || '';
+    $('rpColor').value = safeColor(r.color);
+    $('rpPhotoFile').value = '';
+    $('rpPhotoPreview').style.display = r.photo_url ? '' : 'none';
+    if (r.photo_url) $('rpPhotoPreview').src = r.photo_url;
+    $('stRaces').value = r.races_before ?? 0;
+    $('stDnf').value = r.dnf_before ?? 0;
+    $('stKm').value = r.km_before ?? 0;
+    $('stDplus').value = r.dplus_before ?? 0;
+    $('stStart').value = r.start_year ?? '';
     updatePreview();
   }
-  $('btnSaveStats').addEventListener('click', async () => {
-    const btn = $('btnSaveStats');
-    const payload = { ...statsForm(), updated_at: new Date().toISOString() };
+  $('btnSaveProfil').addEventListener('click', async () => {
+    const name = $('rpName').value.trim();
+    if (!name) return toast('Le prénom est obligatoire', 'error');
+    const file = $('rpPhotoFile').files[0];
+    if (file && !checkSize([file], MAX_IMG, 'image')) return;
+    const btn = $('btnSaveProfil');
     busy(btn, true, 'Enregistrement…');
-    const { data, error } = statsId
-      ? await sb.from('stats').update(payload).eq('id', statsId).select('id').single()
-      : await sb.from('stats').insert(payload).select('id').single();
+    try {
+      const payload = {
+        name, tagline: $('rpTagline').value.trim() || null, bio: $('rpBio').value.trim() || null,
+        instagram: $('rpInsta').value.trim().replace(/^@/, '') || null, color: $('rpColor').value, ...statsForm(),
+      };
+      const old = runner.photo_url;
+      if (file) payload.photo_url = await uploadImage(file, 'runners');
+      const { error } = await sb.from('runners').update(payload).eq('id', runner.id);
+      if (error) throw error;
+      if (file && old) removeStorageFiles([old]);
+      await loadRunners(true);
+      runner = runnerById(runner.id);
+      renderRunnerPick(); renderNavRunners();
+      toast(`Profil de ${name} enregistré ✅`);
+      loadProfil();
+    } catch (e) { toast('Erreur : ' + e.message, 'error'); }
     busy(btn, false);
+  });
+
+  // ─── COUREURS (admin) ───
+  const slugify = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'coureur';
+  async function loadRunnersAdmin() {
+    await loadRunners(true);
+    const { data: accounts } = await sb.rpc('runner_accounts');
+    const emailOf = id => (accounts || []).find(a => a.runner_id === id)?.email;
+    $('runnersTable').innerHTML = runnersCache.map((r, i) => `<tr>
+      <td style="width:56px">${runnerAvatar(r, 40)}</td>
+      <td><strong>${esc(r.name)}</strong><div style="font-size:.78rem;color:var(--dim)">${esc(r.tagline || '')}</div></td>
+      <td><a href="coureur.html?r=${encodeURIComponent(r.slug)}" target="_blank" style="color:var(--muted)">coureur.html?r=${esc(r.slug)}</a></td>
+      <td>${emailOf(r.id) ? `<span class="badge badge-green">${esc(emailOf(r.id))}</span>` : '<span class="badge badge-gray">Aucun</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm btn-icon" title="Monter" ${i === 0 ? 'disabled' : ''} onclick="moveRunner('${r.id}',-1)">↑</button>
+        <button class="btn btn-outline btn-sm btn-icon" title="Descendre" ${i === runnersCache.length - 1 ? 'disabled' : ''} onclick="moveRunner('${r.id}',1)">↓</button>
+      </td>
+      <td class="td-actions">
+        <button class="btn btn-outline btn-sm" onclick="editRunner('${r.id}')">✏️ Profil</button>
+        <button class="btn btn-outline btn-sm" onclick="linkRunner('${r.id}')">🔗 ${emailOf(r.id) ? 'Changer' : 'Relier'}</button>
+        <button class="btn btn-danger btn-sm btn-icon" title="Supprimer" onclick="deleteRunner('${r.id}')">🗑️</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6" class="td-empty">Aucun coureur.</td></tr>';
+  }
+  function editRunner(id) {
+    runner = runnerById(id);
+    const u = new URL(location.href); u.searchParams.set('r', runner.slug); history.replaceState(null, '', u);
+    renderRunnerPick(); loadPanel('profil');
+  }
+  async function linkRunner(id) {
+    const r = runnerById(id);
+    const email = prompt(`Email du compte de ${r.name} (il doit déjà être inscrit sur le site).\nLaisse vide pour délier le compte actuel.`);
+    if (email === null) return;
+    const { data, error } = await sb.rpc('link_runner_account', { rid: id, account_email: email.trim() });
+    if (error) return toast(error.message, 'error');
+    toast(data === 'délié' ? `Compte délié de ${r.name}` : `Compte relié à ${r.name} ✅`);
+    loadRunnersAdmin();
+  }
+  async function moveRunner(id, dir) {
+    const list = [...runnersCache];
+    const i = list.findIndex(r => r.id === id), j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    await Promise.all(list.map((r, k) => sb.from('runners').update({ sort_order: k + 1 }).eq('id', r.id)));
+    await loadRunnersAdmin();
+    renderRunnerPick(); renderNavRunners();
+  }
+  async function deleteRunner(id) {
+    const r = runnerById(id);
+    const typed = prompt(`⚠️ Supprimer ${r.name} supprimera aussi TOUTES ses courses, son matériel et leurs photos.\n\nTape « ${r.name} » pour confirmer :`);
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== r.name.toLowerCase()) return toast('Nom incorrect, rien n\'a été supprimé', 'error');
+    const [{ data: races }, { data: gear }] = await Promise.all([
+      sb.from('races').select('image_url, images, videos').eq('runner_id', id),
+      sb.from('materiel').select('image_url').eq('runner_id', id),
+    ]);
+    const { error } = await sb.from('runners').delete().eq('id', id);
     if (error) return toast('Erreur : ' + error.message, 'error');
-    statsId = data.id;
-    toast('Statistiques enregistrées ✅');
+    removeStorageFiles([r.photo_url, ...(races || []).flatMap(x => [x.image_url, ...toArr(x.images), ...toArr(x.videos)]), ...(gear || []).map(g => g.image_url)]);
+    toast(`${r.name} a été supprimé`);
+    await loadRunnersAdmin();
+    if (runner?.id === id) runner = null;
+    renderRunnerPick(); renderNavRunners();
+  }
+  $('addRunner').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = $('newRunnerName').value.trim();
+    if (!name) return;
+    let slug = slugify(name);
+    if (runnersCache.some(r => r.slug === slug)) slug += '-' + Math.random().toString(36).slice(2, 5);
+    const palette = ['#ff6a2b', '#5cc8ff', '#34d399', '#a78bfa', '#f472b6', '#facc15'];
+    const { error } = await sb.from('runners').insert({ name, slug, tagline: 'Traileur', color: palette[runnersCache.length % palette.length], sort_order: runnersCache.length + 1 });
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    $('newRunnerName').value = '';
+    toast(`${name} a rejoint l'équipe 🎉`);
+    await loadRunnersAdmin();
+    renderRunnerPick(); renderNavRunners();
   });
 
   // ─── TABLES COURSES ───
@@ -373,13 +532,15 @@
       <button class="btn btn-danger btn-sm btn-icon" title="Supprimer" onclick="deleteRace('${r.id}')">🗑️</button></td>`;
 
   async function fetchRaces(type, asc) {
-    const { data, error } = await sb.from('races').select('*').eq('type', type).order('date', { ascending: asc });
+    if (!runner) return [];
+    const { data, error } = await sb.from('races').select('*').eq('type', type).eq('runner_id', runner.id).order('date', { ascending: asc });
     if (error) toast('Erreur : ' + error.message, 'error');
     (data || []).forEach(r => raceCache[r.id] = r);
     return data || [];
   }
 
   async function loadPastTable() {
+    $('pastWho').textContent = runner ? '· ' + runner.name : '';
     const races = await fetchRaces('past', false);
     $('pastTable').innerHTML = races.length ? races.map(r => {
       const ni = toArr(r.images).length, nv = toArr(r.videos).length;
@@ -396,6 +557,7 @@
   }
 
   async function loadUpcomingTable() {
+    $('upWho').textContent = runner ? '· ' + runner.name : '';
     const races = await fetchRaces('upcoming', true);
     $('upcomingTable').innerHTML = races.length ? races.map(r => {
       const st = STATUS[r.status] || STATUS.objectif;
@@ -479,6 +641,7 @@
 
       const payload = {
         name, date, type: kind,
+        runner_id: (id && raceCache[id]?.runner_id) || runner.id,
         location: $('rLocation').value.trim() || null,
         distance: parseFloat($('rDistance').value) || null,
         dplus: parseInt($('rDplus').value, 10) || null,
@@ -544,7 +707,8 @@
   let matCache = {};
   previewFile($('mImgFile'), $('mImgPreview'));
   async function loadMatTable() {
-    const { data, error } = await sb.from('materiel').select('*').order('categorie').order('nom');
+    if (!runner) return;
+    const { data, error } = await sb.from('materiel').select('*').eq('runner_id', runner.id).order('categorie').order('nom');
     if (error) toast('Erreur : ' + error.message, 'error');
     const items = data || [];
     matCache = Object.fromEntries(items.map(i => [i.id, i]));
@@ -585,7 +749,7 @@
     const btn = $('matModalSave');
     busy(btn, true, 'Enregistrement…');
     try {
-      const payload = { nom, categorie: $('mCat').value, marque: $('mMarque').value.trim() || null, description: $('mDesc').value.trim() || null, avis: $('mAvis').value.trim() || null };
+      const payload = { runner_id: matEditing?.runner_id || runner.id, nom, categorie: $('mCat').value, marque: $('mMarque').value.trim() || null, description: $('mDesc').value.trim() || null, avis: $('mAvis').value.trim() || null };
       if (file) payload.image_url = await uploadImage(file, 'materiel');
       const { error } = matEditing
         ? await sb.from('materiel').update(payload).eq('id', matEditing.id)

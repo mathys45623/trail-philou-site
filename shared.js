@@ -57,6 +57,16 @@ function computeTotals(stats, pastRaces = []) {
   };
 }
 
+// Totaux de plusieurs coureurs (ou d'un seul) à partir de leurs courses terminées
+function teamTotals(runners, pastRaces, only = null) {
+  const t = { fin: 0, dnf: 0, total: 0, km: 0, dplus: 0, years: 0 };
+  (only ? [only] : runners).forEach(r => {
+    const x = computeTotals(r, pastRaces.filter(c => c.runner_id === r.id));
+    for (const k in t) t[k] = k === 'years' ? Math.max(t[k], x[k]) : t[k] + x[k];
+  });
+  return t;
+}
+
 function fmtRelative(d) {
   const s = (new Date(d) - Date.now()) / 1000;
   const rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' });
@@ -116,15 +126,69 @@ async function compressImage(file, maxSide = 2000, quality = 0.82) {
 const uploadImage = async (file, folder) => uploadFile(await compressImage(file), 'images', folder);
 const uploadVideo = (file, folder) => uploadFile(file, 'videos', folder);
 
+// ─── COUREURS ───
+let runnersCache = null;
+async function loadRunners(force = false) {
+  if (runnersCache && !force) return runnersCache;
+  const { data } = await sb.from('runners').select('*').order('sort_order').order('name');
+  runnersCache = data || [];
+  return runnersCache;
+}
+const runnerById = id => (runnersCache || []).find(r => r.id === id);
+const safeColor = c => /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#ff6a2b';
+
+function runnerAvatar(r, size = 28) {
+  if (!r) return '';
+  const st = `--rc:${safeColor(r.color)};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px`;
+  return r.photo_url
+    ? `<img class="runner-av" src="${esc(r.photo_url)}" alt="" style="${st}" loading="lazy" />`
+    : `<span class="runner-av" style="${st}">${esc(r.name.charAt(0).toUpperCase())}</span>`;
+}
+function runnerChip(r) {
+  return r ? `<span class="runner-chip" style="--rc:${safeColor(r.color)}">${runnerAvatar(r, 18)}${esc(r.name)}</span>` : '';
+}
+
+// Coureur choisi : ?r=slug dans l'URL, sinon dernier choix mémorisé
+function getSelectedRunner(runners) {
+  let slug = new URLSearchParams(location.search).get('r');
+  if (slug === null) { try { slug = localStorage.getItem('runner'); } catch { slug = null; } }
+  return runners.find(r => r.slug === slug) || null;
+}
+// Sélecteur « Toute l'équipe / chaque coureur »
+function mountRunnerFilter(el, runners, onChange) {
+  let sel = getSelectedRunner(runners);
+  const render = () => {
+    el.innerHTML = `<button class="chip${sel ? '' : ' active'}" data-slug="">👥 Toute l'équipe</button>` +
+      runners.map(r => `<button class="chip chip-runner${sel?.id === r.id ? ' active' : ''}" data-slug="${esc(r.slug)}" style="--rc:${safeColor(r.color)}">${runnerAvatar(r, 22)}${esc(r.name)}</button>`).join('');
+  };
+  render();
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-slug]');
+    if (!b) return;
+    sel = runners.find(r => r.slug === b.dataset.slug) || null;
+    const u = new URL(location.href);
+    sel ? u.searchParams.set('r', sel.slug) : u.searchParams.delete('r');
+    history.replaceState(null, '', u);
+    try { localStorage.setItem('runner', sel?.slug || ''); } catch {}
+    render();
+    onChange(sel);
+  });
+  return sel;
+}
+
 // ─── SESSION ───
 let currentUser = null;
 let currentProfile = null;
+let myRunner = null;   // coureur relié au compte connecté
 
 async function loadSession() {
   const { data: { session } } = await sb.auth.getSession();
   currentUser = session?.user || null;
   currentProfile = null;
+  myRunner = null;
   if (currentUser) {
+    const { data: mr } = await sb.from('runners').select('*').eq('user_id', currentUser.id).maybeSingle();
+    myRunner = mr;
     const { data } = await sb.from('profiles').select('id, full_name, role').eq('id', currentUser.id).maybeSingle();
     currentProfile = data;
     if (!data) {
@@ -137,6 +201,7 @@ async function loadSession() {
   return currentUser;
 }
 const isAdmin = () => currentProfile?.role === 'admin';
+const canManage = () => isAdmin() || !!myRunner;
 function displayName() {
   return currentProfile?.full_name || currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || '—';
 }
@@ -144,7 +209,8 @@ function displayName() {
 // ─── LAYOUT (menu + connexion) ───
 const NAV = [
   { page: 'home', href: 'index.html', icon: '🏠', label: 'Accueil' },
-  { section: 'Mon trail' },
+  { runners: true },
+  { section: 'Le trail' },
   { page: 'stats', href: 'statistiques.html', icon: '📊', label: 'Statistiques' },
   { page: 'past', href: 'courses-terminees.html', icon: '🏆', label: 'Courses terminées' },
   { page: 'upcoming', href: 'prochaines-courses.html', icon: '🗓️', label: 'Prochaines courses' },
@@ -155,7 +221,7 @@ const NAV = [
 
 function renderShell() {
   const page = document.body.dataset.page;
-  const links = NAV.map(n => n.section
+  const links = NAV.map(n => n.runners ? '<div id="navRunners"></div>' : n.section
     ? `<div class="sidebar-section">${n.section}</div>`
     : `<a href="${n.href}" class="nav-link${n.page === page ? ' active' : ''}"><span class="ni">${n.icon}</span>${n.label}</a>`
   ).join('');
@@ -234,7 +300,7 @@ function renderUserUI() {
     const name = displayName();
     bottom.innerHTML = `<div class="user-pill">
         <div class="user-avatar">${esc(name.charAt(0).toUpperCase())}</div>
-        <div class="user-meta"><div class="user-name">${esc(name)}</div><div class="user-role">${isAdmin() ? 'Administrateur' : 'Membre'}</div></div>
+        <div class="user-meta"><div class="user-name">${esc(name)}</div><div class="user-role">${isAdmin() ? 'Administrateur' : myRunner ? 'Coureur · ' + esc(myRunner.name) : 'Membre'}</div></div>
         <button class="btn-logout" id="btnLogout" title="Déconnexion" aria-label="Déconnexion">⎋</button>
       </div>`;
     document.getElementById('btnLogout').addEventListener('click', logout);
@@ -242,9 +308,17 @@ function renderUserUI() {
     bottom.innerHTML = `<button class="btn-login-nav" id="btnAuthNav">🔑 Connexion</button>`;
     document.getElementById('btnAuthNav').addEventListener('click', () => openAuth());
   }
-  admin.innerHTML = isAdmin()
-    ? `<div class="sidebar-section">Admin</div><a href="dashboard.html" class="nav-link nav-admin${document.body.dataset.page === 'admin' ? ' active' : ''}"><span class="ni">⚙️</span>Tableau de bord</a>`
+  admin.innerHTML = canManage()
+    ? `<div class="sidebar-section">${isAdmin() ? 'Admin' : 'Mon espace'}</div><a href="dashboard.html" class="nav-link nav-admin${document.body.dataset.page === 'admin' ? ' active' : ''}"><span class="ni">⚙️</span>Tableau de bord</a>`
     : '';
+}
+
+function renderNavRunners() {
+  const el = document.getElementById('navRunners');
+  if (!el || !runnersCache?.length) return;
+  const cur = document.body.dataset.page === 'runner' ? new URLSearchParams(location.search).get('r') : null;
+  el.innerHTML = '<div class="sidebar-section">Les coureurs</div>' + runnersCache.map(r =>
+    `<a href="coureur.html?r=${encodeURIComponent(r.slug)}" class="nav-link${cur === r.slug ? ' active' : ''}">${runnerAvatar(r, 24)}${esc(r.name)}</a>`).join('');
 }
 
 let authLocked = false;   // page protégée : on ne peut pas fermer le modal
@@ -371,8 +445,9 @@ sb.auth.onAuthStateChange(event => {
 async function initPage({ requireAuth = false, onReady } = {}) {
   renderShell();
   setupFX();
-  await loadSession();
+  await Promise.all([loadSession(), loadRunners()]);
   renderUserUI();
+  renderNavRunners();
   if (requireAuth && !currentUser) {
     onAuthed = onReady;
     openAuth({ locked: true });
@@ -526,7 +601,7 @@ function commentHTML(c) {
     <div class="cm-body">
       <div class="cm-head">
         <strong>${esc(name)}</strong>
-        ${c.profiles?.role === 'admin' ? '<span class="badge badge-orange">Philou</span>' : ''}
+        ${(() => { const r = (runnersCache || []).find(x => x.user_id && x.user_id === c.user_id); return r ? runnerChip(r) : c.profiles?.role === 'admin' ? '<span class="badge badge-orange">Admin</span>' : ''; })()}
         <span class="cm-date" title="${esc(new Date(c.created_at).toLocaleString('fr-FR'))}">${fmtRelative(c.created_at)}</span>
         ${canDelete ? `<button class="cm-del" data-del="${c.id}" title="Supprimer" aria-label="Supprimer">🗑️</button>` : ''}
       </div>
@@ -546,14 +621,17 @@ const FX = {
 // Chiffre qui défile de 0 à sa valeur quand il devient visible
 function countUp(el, value, suffix = '') {
   const n = Math.round(+value || 0);
+  const token = el._countUp = {};   // un nouvel appel annule l'animation précédente
+  el._io?.disconnect();
   if (FX.reduced || !n || !('IntersectionObserver' in window)) { el.innerHTML = fmtNum(n) + suffix; return; }
   el.innerHTML = '0' + suffix;
-  const io = new IntersectionObserver(([e]) => {
+  const io = el._io = new IntersectionObserver(([e]) => {
     if (!e.isIntersecting) return;
     io.disconnect();
     const t0 = performance.now(), dur = 1500;
     const step = t => {
-      const p = Math.min((t - t0) / dur, 1);
+      if (el._countUp !== token) return;
+      const p = Math.min(Math.max((t - t0) / dur, 0), 1);
       el.innerHTML = fmtNum(Math.round(n * (1 - Math.pow(1 - p, 4)))) + suffix;
       if (p < 1) requestAnimationFrame(step);
     };

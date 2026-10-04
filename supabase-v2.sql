@@ -203,3 +203,28 @@ END $$;
 REVOKE EXECUTE ON FUNCTION public.comments_rate_limit() FROM public, anon, authenticated;
 DROP TRIGGER IF EXISTS comments_rate_limit ON comments;
 CREATE TRIGGER comments_rate_limit BEFORE INSERT ON comments FOR EACH ROW EXECUTE FUNCTION public.comments_rate_limit();
+
+-- ============================================================
+-- v5 : PLUSIEURS COUREURS (Philou, Lolo, Mat…)
+-- Chaque course et chaque équipement appartient à un coureur.
+-- Un coureur relié à un compte gère son profil, ses courses et son matériel.
+-- (le script complet appliqué est dans la migration Supabase « v5_multi_runners »)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS runners (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9-]{1,40}$'),
+  name TEXT NOT NULL,
+  tagline TEXT, bio TEXT, photo_url TEXT, instagram TEXT,
+  color TEXT NOT NULL DEFAULT '#ff6a2b' CHECK (color ~ '^#[0-9a-fA-F]{6}$'),
+  start_year INTEGER,
+  races_before INTEGER NOT NULL DEFAULT 0, dnf_before INTEGER NOT NULL DEFAULT 0,
+  km_before INTEGER NOT NULL DEFAULT 0, dplus_before INTEGER NOT NULL DEFAULT 0,
+  user_id UUID UNIQUE REFERENCES profiles(id) ON DELETE SET NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE races ADD COLUMN IF NOT EXISTS runner_id UUID REFERENCES runners(id) ON DELETE CASCADE;
+ALTER TABLE materiel ADD COLUMN IF NOT EXISTS runner_id UUID REFERENCES runners(id) ON DELETE CASCADE;
+-- Fonctions : can_edit_runner(rid), is_runner(), link_runner_account(rid, email), runner_accounts()
+-- Policies : runners (lecture publique, modif admin ou coureur relié), races/materiel (can_edit_runner),
+-- storage (envoi admin ou coureur relié, suppression admin ou propriétaire du fichier).

@@ -46,6 +46,13 @@
     .record .r-lbl { font-size: 0.74rem; color: var(--dim); margin-top: 0.3rem; }
     .record .r-sub { font-size: 0.76rem; color: var(--accent-2); margin-top: 0.15rem; }
 
+    .cmp-row { display: grid; grid-template-columns: 150px 1fr auto; align-items: center; gap: 1.1rem; padding: 0.7rem 0.4rem; border-radius: 12px; text-decoration: none; color: inherit; transition: background 0.2s; }
+    .cmp-row:hover { background: rgba(255,255,255,0.03); }
+    .cmp-who { display: flex; align-items: center; gap: 0.7rem; font-family: var(--font-display); font-size: 1.05rem; }
+    .cmp-fill { background: var(--rc); box-shadow: 0 0 14px color-mix(in srgb, var(--rc) 60%, transparent); }
+    .cmp-vals { display: flex; gap: 1rem; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+    .cmp-vals b { color: var(--text); font-family: var(--font-display); }
+    @media (max-width: 760px) { .cmp-row { grid-template-columns: 1fr; gap: 0.5rem; } }
     @media (max-width: 1100px) { .two-col { grid-template-columns: 1fr; } }
     @media (max-width: 760px) { .stat-grid { grid-template-columns: 1fr 1fr; } .stat { padding: 1.2rem; } }
     @media (max-width: 420px) { .records { grid-template-columns: 1fr; } .ring-wrap { flex-direction: column; align-items: flex-start; } }
@@ -57,16 +64,22 @@
   <div class="page-header">
     <div class="page-eyebrow">📊 En chiffres</div>
     <h1 class="page-title">Statistiques</h1>
-    <p class="page-sub">Tous mes chiffres en trail : volume, régularité et records personnels.</p>
+    <p class="page-sub" id="pageSub">Les chiffres cumulés de l'équipe : volume, régularité et records.</p>
   </div>
   <div class="page-content">
+    <div class="filters runner-filter-bar" id="runnerFilter"></div>
     <div class="stat-grid">
       <div class="stat hl"><div class="s-icon">🏅</div><div class="s-val" id="stRaces">—</div><div class="s-lbl">Courses finies</div></div>
       <div class="stat"><div class="s-icon">🛣️</div><div class="s-val" id="stKm">—</div><div class="s-lbl">Kilomètres en course</div></div>
       <div class="stat"><div class="s-icon">⛰️</div><div class="s-val" id="stDplus">—</div><div class="s-lbl">Mètres de D+</div></div>
       <div class="stat"><div class="s-icon">🏁</div><div class="s-val" id="stTotal">—</div><div class="s-lbl">Départs au total</div></div>
       <div class="stat"><div class="s-icon">🚩</div><div class="s-val" id="stDnf">—</div><div class="s-lbl">Abandons (DNF)</div></div>
-      <div class="stat"><div class="s-icon">🗓️</div><div class="s-val" id="stYears">—</div><div class="s-lbl">Années de pratique</div></div>
+      <div class="stat"><div class="s-icon">🗓️</div><div class="s-val" id="stYears">—</div><div class="s-lbl" id="yearsLbl">Années de pratique</div></div>
+    </div>
+
+    <div class="card" id="compareCard" style="margin-bottom:1.5rem">
+      <div class="card-header"><div class="card-title">Comparatif de l'équipe</div><span class="badge badge-gray">kilomètres</span></div>
+      <div class="card-body" id="compareBody"></div>
     </div>
 
     <div class="two-col">
@@ -112,31 +125,58 @@
 <script src="shared.js"></script>
 <script>
   const set = (id, v) => document.getElementById(id).textContent = v;
+  let allRaces = [];
 
   async function loadPage() {
-    const [{ data: s }, { data: races }] = await Promise.all([
-      sb.from('stats').select('*').limit(1).maybeSingle(),
-      sb.from('races').select('name, date, distance, dplus, rank, dnf').eq('type', 'past'),
-    ]);
-    const list = races || [];
+    const { data } = await sb.from('races').select('runner_id, name, date, distance, dplus, rank, dnf').eq('type', 'past');
+    allRaces = data || [];
+    const sel = mountRunnerFilter(document.getElementById('runnerFilter'), runnersCache, render);
+    render(sel);
+  }
 
-    // Historique saisi dans le dashboard + courses enregistrées
-    const { fin, dnf, km, dplus, years: yrs } = computeTotals(s, list);
+  function render(runner) {
+    const list = runner ? allRaces.filter(r => r.runner_id === runner.id) : allRaces;
+    const who = runner ? runner.name : "l'équipe";
+    document.getElementById('pageSub').textContent = runner
+      ? `Les chiffres de ${runner.name} : volume, régularité et records personnels.`
+      : "Les chiffres cumulés de l'équipe : volume, régularité et records.";
+    document.getElementById('yearsLbl').textContent = runner ? 'Années de pratique' : 'Années de trail cumulées';
+
+    // Historique « avant le site » + courses enregistrées
+    const t = teamTotals(runnersCache, allRaces, runner);
+    const years = runner ? t.years : runnersCache.reduce((a, r) => a + computeTotals(r, []).years, 0);
     const $ = id => document.getElementById(id);
-    countUp($('stRaces'), fin);
-    countUp($('stDnf'), dnf);
-    countUp($('stTotal'), fin + dnf);
-    countUp($('stKm'), km);
-    countUp($('stDplus'), dplus);
-    countUp($('stYears'), yrs, '<small>ans</small>');
+    countUp($('stRaces'), t.fin);
+    countUp($('stDnf'), t.dnf);
+    countUp($('stTotal'), t.total);
+    countUp($('stKm'), t.km);
+    countUp($('stDplus'), t.dplus);
+    countUp($('stYears'), years, '<small>ans</small>');
 
-    const pct = fin + dnf ? Math.round(fin / (fin + dnf) * 100) : 0;
-    set('ringPct', fin + dnf ? pct + '%' : '—');
-    set('lgFin', fmtNum(fin)); set('lgDnf', fmtNum(dnf));
-    setTimeout(() => document.getElementById("ringArc").style.strokeDashoffset = 314.16 * (1 - pct / 100), 80);
+    const pct = t.total ? Math.round(t.fin / t.total * 100) : 0;
+    set('ringPct', t.total ? pct + '%' : '—');
+    set('lgFin', fmtNum(t.fin)); set('lgDnf', fmtNum(t.dnf));
+    setTimeout(() => $('ringArc').style.strokeDashoffset = 314.16 * (1 - pct / 100), 80);
 
+    // Comparatif des coureurs (vue équipe seulement)
+    const cmp = $('compareCard');
+    cmp.style.display = runner ? 'none' : '';
+    if (!runner) {
+      const rows = runnersCache.map(r => ({ r, x: computeTotals(r, allRaces.filter(c => c.runner_id === r.id)) }));
+      const maxKm = Math.max(1, ...rows.map(o => o.x.km));
+      $('compareBody').innerHTML = rows.map(({ r, x }) => `
+        <a class="cmp-row" href="coureur.html?r=${encodeURIComponent(r.slug)}" style="--rc:${safeColor(r.color)}">
+          <div class="cmp-who">${runnerAvatar(r, 34)}<b>${esc(r.name)}</b></div>
+          <div class="bar-track"><div class="bar-fill cmp-fill" data-w="${Math.round(x.km / maxKm * 100)}"></div></div>
+          <div class="cmp-vals"><span><b>${fmtNum(x.fin)}</b> courses</span><span><b>${fmtNum(x.km)}</b> km</span><span><b>${fmtNum(x.dplus)}</b> m D+</span></div>
+        </a>`).join('');
+    }
+
+    ['recBest', 'recLong', 'recDplus', 'recYear'].forEach(id => { set(id, '—'); set(id + 'Sub', ''); });
+    set('yearHint', '');
     if (!list.length) {
-      document.getElementById('yearBars').innerHTML = '<div class="empty" style="padding:2rem"><div class="empty-icon">📊</div><p>Aucune course détaillée pour l\'instant</p></div>';
+      $('yearBars').innerHTML = `<div class="empty" style="padding:2rem"><div class="empty-icon">📊</div><p>Aucune course détaillée pour ${esc(who)} pour l'instant</p></div>`;
+      setTimeout(() => document.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.w + '%'), 80);
       return;
     }
 
@@ -154,21 +194,22 @@
       if (pos > 0 && (!best || pos < best.pos)) best = { ...r, pos };
     });
 
-    const years = Object.keys(byYear).sort((a, b) => b - a);
-    const maxN = Math.max(...years.map(y => byYear[y].n));
+    const yrs = Object.keys(byYear).sort((a, b) => b - a);
+    const maxN = Math.max(...yrs.map(y => byYear[y].n));
     set('yearHint', `${list.length} course${list.length > 1 ? 's' : ''} détaillée${list.length > 1 ? 's' : ''}`);
-    document.getElementById('yearBars').innerHTML = years.map(y => `
+    $('yearBars').innerHTML = yrs.map(y => `
       <div class="year-bar">
         <div class="year-label">${y}</div>
         <div class="bar-track"><div class="bar-fill" data-w="${Math.round(byYear[y].n / maxN * 100)}"></div></div>
         <div class="bar-val">${byYear[y].n} course${byYear[y].n > 1 ? 's' : ''} · ${fmtNum(Math.round(byYear[y].km))} km</div>
       </div>`).join('');
-    setTimeout(() => document.querySelectorAll(".bar-fill").forEach(b => b.style.width = b.dataset.w + '%'), 80);
+    setTimeout(() => document.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.w + '%'), 80);
 
-    if (best) { set('recBest', best.rank); set('recBestSub', best.name); }
-    if (longest) { set('recLong', fmtNum(longest.distance) + ' km'); set('recLongSub', longest.name); }
-    if (highest) { set('recDplus', fmtNum(highest.dplus) + ' m'); set('recDplusSub', highest.name); }
-    const top = years.reduce((a, y) => byYear[y].n > byYear[a].n ? y : a, years[0]);
+    const by = r => runner ? r.name : `${r.name} · ${runnerById(r.runner_id)?.name || ''}`;
+    if (best) { set('recBest', best.rank); set('recBestSub', by(best)); }
+    if (longest) { set('recLong', fmtNum(longest.distance) + ' km'); set('recLongSub', by(longest)); }
+    if (highest) { set('recDplus', fmtNum(highest.dplus) + ' m'); set('recDplusSub', by(highest)); }
+    const top = yrs.reduce((a, y) => byYear[y].n > byYear[a].n ? y : a, yrs[0]);
     set('recYear', top); set('recYearSub', `${byYear[top].n} course${byYear[top].n > 1 ? 's' : ''}`);
   }
 

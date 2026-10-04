@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trail Philou</title>
-  <meta name="description" content="Trail Philou — courses, résultats, statistiques et matériel d'un passionné de trail et de montagne." />
+  <meta name="description" content="Trail Philou — l'équipe Philou, Lolo et Mat : courses, résultats, statistiques et matériel." />
   <meta name="theme-color" content="#07090d" />
   <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -24,9 +24,43 @@
     .hero-inner > :nth-child(3) { animation-delay: 0.2s; }
     .hero-inner > :nth-child(4) { animation-delay: 0.3s; }
     .hero-ridge g { will-change: transform; transition: transform 0.2s linear; }
-    .hero-photo { transition: transform 0.3s cubic-bezier(.2,.8,.2,1); transform: rotate(2deg) rotateX(var(--prx, 0deg)) rotateY(var(--pry, 0deg)); }
-    .hero-visual:hover .hero-photo { transform: rotate(0deg) rotateX(var(--prx, 0deg)) rotateY(var(--pry, 0deg)) scale(1.02); }
-    .hero-visual { perspective: 1000px; }
+    .hero-visual { perspective: 1100px; }
+    .fan { position: relative; aspect-ratio: 1 / 1; transform-style: preserve-3d; transition: transform 0.3s cubic-bezier(.2,.8,.2,1); transform: rotateX(var(--prx, 0deg)) rotateY(var(--pry, 0deg)); }
+    .fan-card {
+      position: absolute; left: 22%; right: 22%; top: 6%; bottom: 6%; z-index: var(--z);
+      border-radius: 26px; overflow: hidden; text-decoration: none; color: #fff;
+      border: 1px solid var(--border-2); background: var(--surface-2);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 3px color-mix(in srgb, var(--rc) 70%, transparent);
+      transform-origin: 50% 110%;
+      transform: translateX(calc(var(--o) * 30%)) rotate(calc(var(--o) * 9deg));
+      transition: transform 0.55s cubic-bezier(.2,.8,.2,1), box-shadow 0.3s;
+      animation: fanIn 0.9s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--n) * 0.12s + 0.15s);
+    }
+    @keyframes fanIn { from { opacity: 0; translate: 0 40px; } to { opacity: 1; translate: 0 0; } }
+    .fan:hover .fan-card { transform: translateX(calc(var(--o) * 46%)) rotate(calc(var(--o) * 13deg)); }
+    .fan .fan-card:hover { z-index: 20; transform: translateX(calc(var(--o) * 46%)) rotate(calc(var(--o) * 6deg)) translateY(-6%) scale(1.06); }
+    .fan-card img { width: 100%; height: 100%; object-fit: cover; }
+    .fan-initial { width: 100%; height: 100%; display: grid; place-items: center; font-family: var(--font-display); font-size: 7rem; font-weight: 800; color: #0b0d12; background: linear-gradient(160deg, var(--rc), color-mix(in srgb, var(--rc) 35%, #0d1219)); }
+    .fan-card .fan-label { position: absolute; left: 0; right: 0; bottom: 0; padding: 2.5rem 1rem 0.9rem; background: linear-gradient(180deg, transparent, rgba(7,9,13,0.92)); }
+    .fan-card .fan-label b { display: block; font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; }
+    .fan-card .fan-label span { font-size: 0.72rem; color: color-mix(in srgb, var(--rc) 75%, #fff); font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; }
+
+    .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1.25rem; }
+    .team-card { position: relative; display: flex; flex-direction: column; overflow: hidden; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s; }
+    .team-card:hover { transform: translateY(-6px); border-color: color-mix(in srgb, var(--rc) 55%, transparent); box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 40px -10px var(--rc); }
+    .team-photo { position: relative; aspect-ratio: 4/3; overflow: hidden; background: var(--surface-2); }
+    .team-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s; }
+    .team-card:hover .team-photo img { transform: scale(1.07); }
+    .team-photo .fan-initial { font-size: 5rem; }
+    .team-photo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, var(--surface)); }
+    .team-body { padding: 0.2rem 1.4rem 1.4rem; position: relative; z-index: 1; margin-top: -1.6rem; }
+    .team-name { font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; }
+    .team-tag { font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--rc); }
+    .team-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 1.1rem; }
+    .team-stats div { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 0.6rem 0.7rem; }
+    .team-stats b { display: block; font-family: var(--font-display); font-size: 1.15rem; }
+    .team-stats span { font-size: 0.66rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .team-cta { margin-top: 1rem; font-size: 0.84rem; font-weight: 700; color: var(--rc); }
     .float-card { transition: translate 0.3s cubic-bezier(.2,.8,.2,1); animation: bob 5s ease-in-out infinite; }
     .fc-2 { animation-delay: -2.5s; }
     @keyframes bob { 50% { margin-top: -10px; } }
@@ -154,19 +188,18 @@
     </div>
 
     <div class="hero-inner">
-      <div class="hero-tag"><span class="dot">🏔️</span> Passionné de trail &amp; montagne</div>
+      <div class="hero-tag"><span class="dot">🏔️</span> Une équipe de passionnés de trail</div>
       <h1 class="hero-title" id="heroTitle">Courir plus loin,<br><span class="grad-text">toujours plus haut</span></h1>
-      <p class="hero-bio" id="heroBio">Bienvenue dans mon univers trail : mes courses, mes résultats, mes objectifs et le matériel qui m'accompagne.</p>
+      <p class="hero-bio" id="heroBio">Bienvenue dans notre univers trail : nos courses, nos résultats, nos objectifs et le matériel qui nous accompagne.</p>
       <div class="hero-ctas">
-        <a href="courses-terminees.html" class="btn btn-primary">🏆 Voir mes courses</a>
-        <a href="https://www.instagram.com/philippehoual?igsh=MW9iYW5iZnYwN2NjcQ==" target="_blank" rel="noopener" class="btn btn-insta">📸 Instagram</a>
+        <a href="#team" class="btn btn-primary">👥 Découvrir l'équipe</a>
+        <a href="courses-terminees.html" class="btn btn-insta">🏆 Nos courses</a>
       </div>
     </div>
 
     <div class="hero-visual">
-      <div class="hero-photo" id="heroPhotoWrap"></div>
-      <div class="float-card fc-1"><div class="fc-val grad-text" id="fcKm">—</div><div class="fc-lbl">km parcourus</div></div>
-      <div class="float-card fc-2"><div class="fc-val" id="fcYears">—</div><div class="fc-lbl">ans de trail</div></div>
+      <div class="fan" id="heroFan"></div>
+      <div class="float-card fc-2"><div class="fc-val" id="fcRunners">—</div><div class="fc-lbl">coureurs</div></div>
     </div>
     <a href="#stats" class="scroll-hint" aria-label="Défiler"><span></span>Défiler</a>
   </section>
@@ -175,8 +208,15 @@
     <div class="strip-item"><div class="strip-val" id="sRaces">—</div><div class="strip-lbl">Courses finies</div></div>
     <div class="strip-item"><div class="strip-val" id="sKm">—</div><div class="strip-lbl">Kilomètres</div></div>
     <div class="strip-item"><div class="strip-val" id="sDplus">—</div><div class="strip-lbl">Mètres D+</div></div>
-    <div class="strip-item"><div class="strip-val" id="sYears">—</div><div class="strip-lbl">Années de pratique</div></div>
+    <div class="strip-item"><div class="strip-val" id="sYears">—</div><div class="strip-lbl">Années de trail cumulées</div></div>
   </div>
+
+  <section class="section" id="team">
+    <div class="section-head">
+      <div><div class="page-eyebrow">👥 L'équipe</div><h2 class="section-title">Les coureurs</h2></div>
+    </div>
+    <div class="team-grid" id="teamGrid"></div>
+  </section>
 
   <section class="section" id="nextSection" style="display:none">
     <div class="section-head">
@@ -211,37 +251,65 @@
   }
 
   async function loadHome() {
-    const photoWrap = document.getElementById('heroPhotoWrap');
-    const noPhoto = `<div class="no-photo">${MOUNTAIN_SVG}</div>`;
-
-    const [{ data: p }, { data: s }, { data: past }, { data: next }] = await Promise.all([
-      sb.from('profiles').select('hero_title, bio, photo_url').eq('role', 'admin').limit(1).maybeSingle(),
-      sb.from('stats').select('*').order('id').limit(1).maybeSingle(),
-      sb.from('races').select('distance, dplus, dnf').eq('type', 'past'),
-      sb.from('races').select('*').eq('type', 'upcoming').gte('date', new Date().toISOString().slice(0, 10)).order('date').limit(1),
+    const runners = runnersCache;
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: p }, { data: past }, { data: next }] = await Promise.all([
+      sb.from('profiles').select('hero_title, bio').eq('role', 'admin').limit(1).maybeSingle(),
+      sb.from('races').select('runner_id, distance, dplus, dnf').eq('type', 'past'),
+      sb.from('races').select('*').eq('type', 'upcoming').gte('date', today).order('date').limit(1),
     ]);
 
     if (p?.hero_title) document.getElementById('heroTitle').innerHTML = renderTitle(p.hero_title);
     if (p?.bio) document.getElementById('heroBio').textContent = p.bio;
-    photoWrap.innerHTML = p?.photo_url ? `<img src="${esc(p.photo_url)}" alt="Photo de Philou" />` : noPhoto;
-    photoWrap.querySelector('img')?.addEventListener('error', () => photoWrap.innerHTML = noPhoto);
 
-    const t = computeTotals(s, past || []);
+    // Éventail de photos des coureurs
+    const n = runners.length;
+    document.getElementById('heroFan').innerHTML = runners.map((r, i) => {
+      const o = i - (n - 1) / 2;
+      return `<a class="fan-card" href="coureur.html?r=${encodeURIComponent(r.slug)}" style="--o:${o};--z:${10 - Math.round(Math.abs(o) * 2)};--n:${i};--rc:${safeColor(r.color)}">
+        ${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="${esc(r.name)}" />` : `<div class="fan-initial">${esc(r.name.charAt(0).toUpperCase())}</div>`}
+        <div class="fan-label"><b>${esc(r.name)}</b><span>${esc(r.tagline || 'Traileur')}</span></div>
+      </a>`;
+    }).join('');
+
+    // Totaux de l'équipe
+    const races = past || [];
+    const t = teamTotals(runners, races);
+    const yearsSum = runners.reduce((a, r) => a + computeTotals(r, []).years, 0);
     countUp(document.getElementById('sRaces'), t.fin);
     countUp(document.getElementById('sKm'), t.km);
     countUp(document.getElementById('sDplus'), t.dplus);
-    countUp(document.getElementById('sYears'), t.years);
-    countUp(document.getElementById('fcKm'), t.km);
-    countUp(document.getElementById('fcYears'), t.years);
+    countUp(document.getElementById('sYears'), yearsSum);
+    document.getElementById('fcRunners').textContent = n;
+
+    // Cartes des coureurs
+    document.getElementById('teamGrid').innerHTML = runners.map(r => {
+      const x = computeTotals(r, races.filter(c => c.runner_id === r.id));
+      return `<a class="team-card" href="coureur.html?r=${encodeURIComponent(r.slug)}" style="--rc:${safeColor(r.color)}">
+        <div class="team-photo">${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="${esc(r.name)}" loading="lazy" />` : `<div class="fan-initial">${esc(r.name.charAt(0).toUpperCase())}</div>`}</div>
+        <div class="team-body">
+          <div class="team-tag">${esc(r.tagline || 'Traileur')}</div>
+          <div class="team-name">${esc(r.name)}</div>
+          <div class="team-stats">
+            <div><b>${fmtNum(x.fin)}</b><span>courses</span></div>
+            <div><b>${fmtNum(x.km)}</b><span>km</span></div>
+            <div><b>${fmtNum(x.dplus)}</b><span>m D+</span></div>
+          </div>
+          <div class="team-cta">Voir le profil →</div>
+        </div>
+      </a>`;
+    }).join('');
 
     const r = next?.[0];
     if (r) {
       const d = daysUntil(r.date);
       const st = STATUS[r.status] || STATUS.objectif;
+      const who = runnerById(r.runner_id);
+      document.getElementById('nextRace').href = `prochaines-courses.html${who ? '?r=' + encodeURIComponent(who.slug) : ''}`;
       document.getElementById('nextRace').innerHTML = `
         <div class="next-race-media">${r.image_url ? `<img src="${esc(r.image_url)}" alt="" />` : `<div class="no-img" style="position:absolute;inset:0;display:grid;place-items:center">${MOUNTAIN_SVG}</div>`}</div>
         <div class="next-race-body">
-          <div><span class="badge ${st.cls}">${st.label}</span></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">${runnerChip(who)}<span class="badge ${st.cls}">${st.label}</span></div>
           <div class="next-race-count grad-text" style="margin-top:1rem">${d === 0 ? 'Jour J' : 'J-' + d}${d > 0 ? '<small>jours</small>' : ''}</div>
           ${d > 0 ? '<div class="live-count" id="liveCount"></div>' : ''}
           <div class="next-race-name">${esc(r.name)}</div>
@@ -262,7 +330,7 @@
       .is('race_id', null).order('created_at', { ascending: false }).limit(3);
     document.getElementById('homeGuestbook').innerHTML = data?.length
       ? data.map(commentHTML).join('').replace(/<button class="cm-del"[^>]*>.*?<\/button>/g, '')
-      : '<div class="cm-empty">Aucun message pour l\'instant. Sois le premier à encourager Philou ! ✨</div>';
+      : '<div class="cm-empty">Aucun message pour l\'instant. Sois le premier à encourager l\'équipe ! ✨</div>';
   }
 
   // Compte à rebours qui défile à la seconde
@@ -291,7 +359,7 @@
     addEventListener('scroll', apply, { passive: true });
 
     if (!FX.fine) return;
-    const hero = document.querySelector('.hero'), photo = document.getElementById('heroPhotoWrap');
+    const hero = document.querySelector('.hero'), photo = document.getElementById('heroFan');
     const cards = document.querySelectorAll('.float-card');
     hero.addEventListener('pointermove', e => {
       const r = hero.getBoundingClientRect();

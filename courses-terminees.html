@@ -15,9 +15,10 @@
   <div class="page-header">
     <div class="page-eyebrow">🏆 Palmarès</div>
     <h1 class="page-title">Courses terminées</h1>
-    <p class="page-sub">Toutes les lignes d'arrivée franchies. Clique sur une course pour voir le résultat, les notes, les photos et les vidéos.</p>
+    <p class="page-sub">Toutes les lignes d'arrivée franchies par l'équipe. Clique sur une course pour voir le résultat, les notes, les photos et les vidéos.</p>
   </div>
   <div class="page-content">
+    <div class="filters runner-filter-bar" id="runnerFilter"></div>
     <div class="filters" id="yearFilters"></div>
     <div class="card-grid" id="racesGrid">
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -29,6 +30,8 @@
 <script>
   let races = [];
   let year = 'all';
+  let runner = null;
+  const mine = () => runner ? races.filter(r => r.runner_id === runner.id) : races;
 
   async function loadPage() {
     const { data, error } = await sb.from('races').select('*').eq('type', 'past').order('date', { ascending: false });
@@ -37,14 +40,16 @@
       return;
     }
     races = data || [];
+    runner = mountRunnerFilter(document.getElementById('runnerFilter'), runnersCache, sel => { runner = sel; year = 'all'; buildFilters(); renderGrid(); });
     buildFilters();
     renderGrid();
   }
 
   function buildFilters() {
-    const years = [...new Set(races.map(r => parseDate(r.date).getFullYear()))];
+    const years = [...new Set(mine().map(r => parseDate(r.date).getFullYear()))];
     const el = document.getElementById('yearFilters');
-    if (years.length < 2) { el.style.display = 'none'; return; }
+    el.style.display = years.length < 2 ? 'none' : '';
+    if (years.length < 2) return;
     el.innerHTML = ['all', ...years].map(y => `<button class="chip${y === year ? ' active' : ''}" data-year="${y}">${y === 'all' ? 'Toutes' : y}</button>`).join('');
     el.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
       year = b.dataset.year === 'all' ? 'all' : +b.dataset.year;
@@ -55,9 +60,9 @@
 
   function renderGrid() {
     const el = document.getElementById('racesGrid');
-    const list = year === 'all' ? races : races.filter(r => parseDate(r.date).getFullYear() === year);
+    const list = year === 'all' ? mine() : mine().filter(r => parseDate(r.date).getFullYear() === year);
     if (!list.length) {
-      el.innerHTML = '<div class="empty"><div class="empty-icon">🏅</div><p>Aucune course encore enregistrée</p></div>';
+      el.innerHTML = `<div class="empty"><div class="empty-icon">🏅</div><p>${runner ? esc(runner.name) + " n'a" : "L'équipe n'a"} encore aucune course enregistrée</p></div>`;
       return;
     }
     el.innerHTML = list.map((r, i) => {
@@ -70,7 +75,7 @@
           ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}
           <div class="media-top">
             <span class="date-chip">${fmtDate(r.date, { month: 'short', year: 'numeric' })}</span>
-            ${r.race_type ? `<span class="badge badge-gray" style="background:rgba(7,9,13,.75)">${esc(RACE_TYPES[r.race_type] || r.race_type)}</span>` : ''}
+            ${runnerChip(runnerById(r.runner_id))}
           </div>
         </div>
         <div class="race-card-body">
@@ -103,7 +108,7 @@
     openDrawer(`
       <div class="drawer-cover">${cover ? `<img src="${esc(cover)}" alt="" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}</div>
       <div class="drawer-head">
-        <div class="page-eyebrow">${esc(RACE_TYPES[r.race_type] || 'Trail')}</div>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">${runnerChip(runnerById(r.runner_id))}<span class="page-eyebrow" style="margin:0">${esc(RACE_TYPES[r.race_type] || 'Trail')}</span></div>
         <div class="drawer-title">${esc(r.name)}</div>
         <div class="drawer-sub">📍 ${esc(r.location || '—')} · ${fmtDate(r.date)}</div>
       </div>

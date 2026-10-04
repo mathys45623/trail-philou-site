@@ -23,20 +23,31 @@
     <h1 class="page-title">Prochaines courses</h1>
     <p class="page-sub">Les objectifs à venir et le compte à rebours jusqu'au départ. Clique sur une course pour tous les détails.</p>
   </div>
-  <div class="page-content" id="content">
+  <div class="page-content">
+    <div class="filters runner-filter-bar" id="runnerFilter"></div>
+    <div id="content">
     <div class="card-grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    </div>
   </div>
 </main>
 
 <script src="shared.js"></script>
 <script>
-  let races = [];
+  var races = [];
+  let runner = null;
 
   async function loadPage() {
     const { data, error } = await sb.from('races').select('*').eq('type', 'upcoming').order('date', { ascending: true });
     const el = document.getElementById('content');
     if (error) { el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Impossible de charger les courses.</p></div>`; return; }
     races = data || [];
+    runner = mountRunnerFilter(document.getElementById('runnerFilter'), runnersCache, sel => { runner = sel; render(); });
+    render();
+  }
+
+  function render() {
+    const el = document.getElementById('content');
+    const races = runner ? window.races.filter(r => r.runner_id === runner.id) : window.races;
     if (!races.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🗓️</div><p>Aucune course à venir pour le moment</p></div>'; return; }
 
     const future = races.filter(r => daysUntil(r.date) >= 0);
@@ -64,12 +75,12 @@
         ${r.image_url ? `<img src="${esc(r.image_url)}" alt="" loading="lazy" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}
         <div class="media-top">
           <span class="date-chip">📅 ${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-          <span class="badge ${st.cls}">${st.label}</span>
+          ${runnerChip(runnerById(r.runner_id))}
         </div>
         ${countdown(r)}
       </div>
       <div class="race-card-body">
-        <div class="race-card-kicker">${esc(RACE_TYPES[r.race_type] || 'Trail')}</div>
+        <div class="race-card-kicker" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">${esc(RACE_TYPES[r.race_type] || 'Trail')}<span class="badge ${st.cls}">${st.label}</span></div>
         <div class="race-card-name">${esc(r.name)}</div>
         <div class="race-card-loc">📍 ${esc(r.location || '—')}</div>
         <div class="race-card-specs">
@@ -81,14 +92,14 @@
   }
 
   function showRace(id) {
-    const r = races.find(x => x.id === id);
+    const r = window.races.find(x => x.id === id);
     if (!r) return;
     const st = STATUS[r.status] || STATUS.objectif;
     const d = daysUntil(r.date);
     openDrawer(`
       <div class="drawer-cover">${r.image_url ? `<img src="${esc(r.image_url)}" alt="" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}</div>
       <div class="drawer-head">
-        <span class="badge ${st.cls}">${st.label}</span>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">${runnerChip(runnerById(r.runner_id))}<span class="badge ${st.cls}">${st.label}</span></div>
         <div class="drawer-title" style="margin-top:.7rem">${esc(r.name)}</div>
         <div class="drawer-sub">📍 ${esc(r.location || '—')} · ${fmtDate(r.date)}</div>
       </div>

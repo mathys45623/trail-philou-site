@@ -15,9 +15,10 @@
   <div class="page-header">
     <div class="page-eyebrow">🎒 Équipement</div>
     <h1 class="page-title">Mon matériel</h1>
-    <p class="page-sub">Chaussures, sac, nutrition, électronique… tout ce qui m'accompagne sur les sentiers, avec mon avis honnête.</p>
+    <p class="page-sub">Chaussures, sac, nutrition, électronique… tout ce qui accompagne l'équipe sur les sentiers, avec un avis honnête.</p>
   </div>
   <div class="page-content">
+    <div class="filters runner-filter-bar" id="runnerFilter"></div>
     <div class="filters" id="catFilters"></div>
     <div class="card-grid" id="matGrid">
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -29,6 +30,8 @@
 <script>
   const CAT_EMOJI = { 'Chaussures': '👟', 'Vêtements': '👕', 'Sac & Hydratation': '🎒', 'Nutrition': '🍌', 'Électronique': '⌚', 'Accessoires': '🧤', 'Autre': '📦' };
   let allItems = [];
+  let runner = null;
+  const mine = () => runner ? allItems.filter(i => i.runner_id === runner.id) : allItems;
 
   async function loadPage() {
     const { data, error } = await sb.from('materiel').select('*').order('categorie').order('nom');
@@ -37,15 +40,17 @@
       return;
     }
     allItems = data || [];
+    runner = mountRunnerFilter(document.getElementById('runnerFilter'), runnersCache, sel => { runner = sel; buildFilters(); renderItems('all'); });
     buildFilters();
     renderItems('all');
   }
 
   function buildFilters() {
-    const cats = [...new Set(allItems.map(i => i.categorie).filter(Boolean))];
+    const cats = [...new Set(mine().map(i => i.categorie).filter(Boolean))];
     const el = document.getElementById('catFilters');
-    if (!cats.length) { el.style.display = 'none'; return; }
-    el.innerHTML = `<button class="chip active" data-cat="all">Tout voir · ${allItems.length}</button>` +
+    el.style.display = cats.length ? '' : 'none';
+    if (!cats.length) return;
+    el.innerHTML = `<button class="chip active" data-cat="all">Tout voir · ${mine().length}</button>` +
       cats.map(c => `<button class="chip" data-cat="${esc(c)}">${CAT_EMOJI[c] || '📦'} ${esc(c)}</button>`).join('');
     el.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
       el.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === b));
@@ -54,7 +59,7 @@
   }
 
   function renderItems(cat) {
-    const list = cat === 'all' ? allItems : allItems.filter(i => i.categorie === cat);
+    const list = cat === 'all' ? mine() : mine().filter(i => i.categorie === cat);
     const el = document.getElementById('matGrid');
     if (!list.length) {
       el.innerHTML = '<div class="empty"><div class="empty-icon">🎒</div><p>Aucun équipement pour le moment</p></div>';
@@ -66,7 +71,7 @@
           ${item.image_url ? `<img src="${esc(item.image_url)}" alt="${esc(item.nom)}" loading="lazy" />` : `<div class="no-img">${CAT_EMOJI[item.categorie] || '📦'}</div>`}
         </div>
         <div class="mat-card-body">
-          <div class="mat-card-cat">${esc(item.categorie || 'Matériel')}</div>
+          <div class="mat-card-cat" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">${esc(item.categorie || 'Matériel')}${runner ? '' : runnerChip(runnerById(item.runner_id))}</div>
           <div class="mat-card-name">${esc(item.nom)}</div>
           ${item.marque ? `<div class="mat-card-brand">${esc(item.marque)}</div>` : ''}
           ${item.description ? `<div class="mat-card-desc">${esc(item.description)}</div>` : ''}

@@ -472,6 +472,25 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
 .cm-text { margin-top: 0.35rem; font-size: 0.92rem; line-height: 1.6; color: var(--muted); white-space: pre-line; overflow-wrap: anywhere; }
 .cm-empty { text-align: center; color: var(--dim); padding: 2rem 1rem; font-size: 0.92rem; }
 
+/* ── COUREURS ── */
+.runner-av {
+  display: inline-grid; place-items: center; flex-shrink: 0; border-radius: 50%; object-fit: cover;
+  background: var(--rc, var(--accent)); color: #0b0d12; font-weight: 800; font-family: var(--font-display);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--rc, var(--accent));
+}
+.nav-link .runner-av { box-shadow: 0 0 0 2px var(--bg-2), 0 0 0 3px var(--rc); }
+.runner-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.18rem 0.6rem 0.18rem 0.22rem; border-radius: 999px;
+  font-size: 0.74rem; font-weight: 700; color: var(--text);
+  background: color-mix(in srgb, var(--rc) 18%, transparent); border: 1px solid color-mix(in srgb, var(--rc) 40%, transparent);
+  white-space: nowrap;
+}
+.runner-chip .runner-av { box-shadow: none; }
+.chip-runner { display: inline-flex; align-items: center; gap: 0.45rem; padding-left: 0.4rem; }
+.chip-runner .runner-av { box-shadow: none; }
+.chip-runner.active { background: var(--rc); color: #0b0d12; }
+.runner-filter-bar { margin-bottom: 1rem; }
+
 /* Abandon */
 .badge-dnf { background: var(--red-soft); color: var(--red); }
 
