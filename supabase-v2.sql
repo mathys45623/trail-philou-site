@@ -237,3 +237,8 @@ ALTER TABLE materiel ADD COLUMN IF NOT EXISTS runner_id UUID REFERENCES runners(
 --   lecture : membres connectés ; publication : admin ou coureur relié ; suppression : auteur ou admin
 -- post_likes(post_id, user_id) : lecture membres, chacun gère ses propres j'aime
 -- comments.post_id : commentaires sur une publication (lisibles seulement par les membres)
+
+-- ============================================================
+-- v7 : PAYS DES COURSES (code ISO à 2 lettres, ex : FR, CH)
+-- ============================================================
+ALTER TABLE races ADD COLUMN IF NOT EXISTS country TEXT CHECK (country ~ '^[A-Z]{2}$');

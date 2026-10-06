@@ -148,6 +148,22 @@ function runnerChip(r) {
   return r ? `<span class="runner-chip" style="--rc:${safeColor(r.color)}">${runnerAvatar(r, 18)}${esc(r.name)}</span>` : '';
 }
 
+// ─── PAYS DES COURSES ───
+// Images de drapeaux (les émojis drapeaux ne s'affichent pas sous Windows)
+const COUNTRY_CODES = ['FR', 'CH', 'IT', 'ES', 'AD', 'BE', 'LU', 'DE', 'AT', 'PT', 'GB', 'IE', 'NL', 'SI', 'HR', 'GR', 'CZ', 'PL', 'NO', 'SE', 'FI', 'IS',
+  'RE', 'MA', 'TN', 'ZA', 'KE', 'NP', 'JP', 'CN', 'TR', 'US', 'CA', 'MX', 'BR', 'AR', 'CL', 'PE', 'AU', 'NZ'];
+const regionNames = (() => { try { return new Intl.DisplayNames(['fr'], { type: 'region' }); } catch { return null; } })();
+const countryName = c => (c && regionNames?.of(c)) || c || '';
+const COUNTRIES = [...COUNTRY_CODES.slice(0, 4), ...COUNTRY_CODES.slice(4).sort((a, b) => countryName(a).localeCompare(countryName(b), 'fr'))];
+const flagImg = (c, w = 18) => /^[A-Z]{2}$/.test(c || '')
+  ? `<img class="flag-img" src="https://flagcdn.com/w40/${c.toLowerCase()}.png" width="${w}" height="${Math.round(w * 0.7)}" alt="" />` : '';
+// compact : drapeau seul (nom du pays au survol), pour les cartes
+function countryChip(c, compact = false) {
+  if (!/^[A-Z]{2}$/.test(c || '')) return '';
+  return `<span class="flag-chip${compact ? ' compact' : ''}" title="${esc(countryName(c))}">${flagImg(c)}${compact ? '' : esc(countryName(c))}</span>`;
+}
+const countryOptions = () => COUNTRIES.map(c => `<option value="${c}">${esc(countryName(c))}</option>`).join('');
+
 // Coureur choisi : ?r=slug dans l'URL, sinon dernier choix mémorisé
 function getSelectedRunner(runners) {
   let slug = new URLSearchParams(location.search).get('r');

@@ -75,7 +75,7 @@
         ${r.image_url ? `<img src="${esc(r.image_url)}" alt="" loading="lazy" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}
         <div class="media-top">
           <span class="date-chip">📅 ${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-          ${runnerChip(runnerById(r.runner_id))}
+          <span class="media-chips">${runnerChip(runnerById(r.runner_id))}${countryChip(r.country, true)}</span>
         </div>
         ${countdown(r)}
       </div>
@@ -99,7 +99,7 @@
     openDrawer(`
       <div class="drawer-cover">${r.image_url ? `<img src="${esc(r.image_url)}" alt="" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}</div>
       <div class="drawer-head">
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap">${runnerChip(runnerById(r.runner_id))}<span class="badge ${st.cls}">${st.label}</span></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">${runnerChip(runnerById(r.runner_id))}${countryChip(r.country)}<span class="badge ${st.cls}">${st.label}</span></div>
         <div class="drawer-title" style="margin-top:.7rem">${esc(r.name)}</div>
         <div class="drawer-sub">📍 ${esc(r.location || '—')} · ${fmtDate(r.date)}</div>
       </div>

@@ -76,7 +76,7 @@
       const d = parseDate(race.date);
       return `<a class="mini" href="${race.type === 'past' ? 'courses-terminees' : 'prochaines-courses'}.html?r=${encodeURIComponent(r.slug)}">
         <div class="mini-date"><b>${d.getDate()}</b><span>${d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })}</span></div>
-        <div><div class="mini-name">${esc(race.name)}</div><div class="mini-sub">${esc(race.location || '')}${race.distance ? ' · ' + esc(race.distance) + ' km' : ''}${race.dplus ? ' · ' + fmtNum(race.dplus) + ' m D+' : ''}</div></div>
+        <div><div class="mini-name">${flagImg(race.country, 16)} ${esc(race.name)}</div><div class="mini-sub">${esc(race.location || '')}${race.distance ? ' · ' + esc(race.distance) + ' km' : ''}${race.dplus ? ' · ' + fmtNum(race.dplus) + ' m D+' : ''}</div></div>
         <div class="mini-right">${right}</div>
       </a>`;
     };

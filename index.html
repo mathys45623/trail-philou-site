@@ -309,7 +309,7 @@
       document.getElementById('nextRace').innerHTML = `
         <div class="next-race-media">${r.image_url ? `<img src="${esc(r.image_url)}" alt="" />` : `<div class="no-img" style="position:absolute;inset:0;display:grid;place-items:center">${MOUNTAIN_SVG}</div>`}</div>
         <div class="next-race-body">
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap">${runnerChip(who)}<span class="badge ${st.cls}">${st.label}</span></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">${runnerChip(who)}${countryChip(r.country)}<span class="badge ${st.cls}">${st.label}</span></div>
           <div class="next-race-count grad-text" style="margin-top:1rem">${d === 0 ? 'Jour J' : 'J-' + d}${d > 0 ? '<small>jours</small>' : ''}</div>
           ${d > 0 ? '<div class="live-count" id="liveCount"></div>' : ''}
           <div class="next-race-name">${esc(r.name)}</div>

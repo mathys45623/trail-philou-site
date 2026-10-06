@@ -491,6 +491,18 @@ input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
 .chip-runner.active { background: var(--rc); color: #0b0d12; }
 .runner-filter-bar { margin-bottom: 1rem; }
 
+/* Pays */
+.flag-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.18rem 0.6rem 0.18rem 0.3rem; border-radius: 999px;
+  font-size: 0.74rem; font-weight: 700; color: var(--text); white-space: nowrap;
+  background: rgba(255,255,255,0.08); border: 1px solid var(--border-2);
+}
+.flag-img { border-radius: 3px; object-fit: cover; box-shadow: 0 0 0 1px rgba(255,255,255,0.15); flex-shrink: 0; }
+.flag-chip.compact { padding: 0.32rem 0.45rem; }
+.flag-chip.compact .flag-img { width: 20px; height: 14px; }
+.media-chips { display: flex; gap: 0.35rem; align-items: center; justify-content: flex-end; min-width: 0; }
+.media-top .flag-chip, .media-top .runner-chip { background: rgba(7,9,13,0.75); backdrop-filter: blur(6px); }
+
 /* Abandon */
 .badge-dnf { background: var(--red-soft); color: var(--red); }
 

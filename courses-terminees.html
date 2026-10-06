@@ -75,7 +75,7 @@
           ${cover ? `<img src="${esc(cover)}" alt="" loading="lazy" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}
           <div class="media-top">
             <span class="date-chip">${fmtDate(r.date, { month: 'short', year: 'numeric' })}</span>
-            ${runnerChip(runnerById(r.runner_id))}
+            <span class="media-chips">${runnerChip(runnerById(r.runner_id))}${countryChip(r.country, true)}</span>
           </div>
         </div>
         <div class="race-card-body">
@@ -108,7 +108,7 @@
     openDrawer(`
       <div class="drawer-cover">${cover ? `<img src="${esc(cover)}" alt="" />` : `<div class="no-img">${MOUNTAIN_SVG}</div>`}</div>
       <div class="drawer-head">
-        <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">${runnerChip(runnerById(r.runner_id))}<span class="page-eyebrow" style="margin:0">${esc(RACE_TYPES[r.race_type] || 'Trail')}</span></div>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem">${runnerChip(runnerById(r.runner_id))}${countryChip(r.country)}<span class="page-eyebrow" style="margin:0">${esc(RACE_TYPES[r.race_type] || 'Trail')}</span></div>
         <div class="drawer-title">${esc(r.name)}</div>
         <div class="drawer-sub">📍 ${esc(r.location || '—')} · ${fmtDate(r.date)}</div>
       </div>

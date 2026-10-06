@@ -217,7 +217,10 @@
     <div class="form-grid">
       <div class="form-group full"><label class="form-label" for="rName">Nom *</label><input class="form-input" id="rName" placeholder="UTMB, Maxi Race…" /></div>
       <div class="form-group"><label class="form-label" for="rDate">Date *</label><input class="form-input" type="date" id="rDate" /></div>
-      <div class="form-group"><label class="form-label" for="rLocation">Lieu</label><input class="form-input" id="rLocation" placeholder="Chamonix, France" /></div>
+      <div class="form-group"><label class="form-label" for="rLocation">Lieu</label><input class="form-input" id="rLocation" placeholder="Chamonix" /></div>
+      <div class="form-group"><label class="form-label" for="rCountry">Pays</label>
+        <div style="display:flex;align-items:center;gap:.6rem"><span id="rCountryFlag"></span><select class="form-select" id="rCountry"></select></div>
+      </div>
       <div class="form-group"><label class="form-label" for="rDistance">Distance (km)</label><input class="form-input" type="number" step="0.1" min="0" id="rDistance" /></div>
       <div class="form-group"><label class="form-label" for="rDplus">Dénivelé + (m)</label><input class="form-input" type="number" min="0" id="rDplus" /></div>
       <div class="form-group"><label class="form-label" for="rType">Type</label>
@@ -546,7 +549,7 @@
       const ni = toArr(r.images).length, nv = toArr(r.videos).length;
       return `<tr>
         <td style="width:60px">${thumb(r)}</td>
-        <td><strong>${esc(r.name)}</strong><div style="font-size:.78rem;color:var(--dim)">${esc(r.location || '')}</div></td>
+        <td><strong>${esc(r.name)}</strong><div style="font-size:.78rem;color:var(--dim);display:flex;align-items:center;gap:.4rem;margin-top:.2rem">${flagImg(r.country, 16)}${esc([r.location, countryName(r.country)].filter(Boolean).join(' · '))}</div></td>
         <td style="white-space:nowrap">${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
         <td>${r.dnf ? '<span class="badge badge-dnf">🚩 Abandon</span>' : esc(r.finish_time || '—')}</td>
         <td>${esc(r.rank || '—')}</td>
@@ -565,7 +568,7 @@
       const finishBtn = `<button class="btn btn-outline btn-sm" title="Saisir le résultat et la déplacer dans « Courses terminées »" onclick="openRaceModal('past','${r.id}')">🏁 Terminée</button>`;
       return `<tr>
         <td style="width:60px">${thumb(r)}</td>
-        <td><strong>${esc(r.name)}</strong></td>
+        <td><strong>${esc(r.name)}</strong><div style="font-size:.78rem;color:var(--dim);display:flex;align-items:center;gap:.4rem;margin-top:.2rem">${flagImg(r.country, 16)}${esc(countryName(r.country))}</div></td>
         <td style="white-space:nowrap">${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}${passed ? '<div style="font-size:.72rem;color:var(--accent-2)">Date passée</div>' : ''}</td>
         <td>${esc(r.location || '—')}</td>
         <td>${r.distance ? esc(r.distance) + ' km' : '—'}</td>
@@ -576,6 +579,8 @@
   }
 
   // ─── MODAL COURSE ───
+  $('rCountry').innerHTML = countryOptions();
+  $('rCountry').addEventListener('change', () => $('rCountryFlag').innerHTML = flagImg($('rCountry').value, 26));
   let editing = null;   // { kind, id, images, videos, image_url }
   let removed = new Set();
 
@@ -591,6 +596,8 @@
     $('rName').value = r?.name || '';
     $('rDate').value = r?.date || '';
     $('rLocation').value = r?.location || '';
+    $('rCountry').value = r?.country || 'FR';
+    $('rCountryFlag').innerHTML = flagImg($('rCountry').value, 26);
     $('rDistance').value = r?.distance ?? '';
     $('rDplus').value = r?.dplus ?? '';
     $('rType').value = r?.race_type || 'trail';
@@ -643,6 +650,7 @@
         name, date, type: kind,
         runner_id: (id && raceCache[id]?.runner_id) || runner.id,
         location: $('rLocation').value.trim() || null,
+        country: $('rCountry').value || null,
         distance: parseFloat($('rDistance').value) || null,
         dplus: parseInt($('rDplus').value, 10) || null,
         race_type: $('rType').value,
