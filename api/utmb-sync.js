@@ -62,7 +62,8 @@ function fmtTime(t) {
   const m = String(t || '').match(/^(\d+):(\d{2}):(\d{2})$/);
   return m ? `${+m[1]}h${m[2]}'${m[3]}` : (t || null);
 }
-const fmtRank = r => r.rank ? `${r.rank === 1 ? '1er' : r.rank + 'e'} / ${r.totalRanked}` : null;
+// "75 / 337" : même format que les courses saisies à la main
+const fmtRank = r => r.rank ? `${r.rank} / ${r.totalRanked}` : null;
 const result = r => ({ finish_time: r.isDnf ? null : fmtTime(r.time), rank: r.isDnf ? null : fmtRank(r), dnf: !!r.isDnf });
 const num = v => (Number.isFinite(+v) && +v > 0 ? +v : null);
 
