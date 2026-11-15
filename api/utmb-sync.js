@@ -28,7 +28,8 @@ async function db(ctx, path, { method = 'GET', body, prefer } = {}) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
-      apikey: ctx.key, Authorization: `Bearer ${ctx.token}`, 'Content-Type': 'application/json',
+      apikey: ctx.key, 'Content-Type': 'application/json',
+      ...(ctx.token ? { Authorization: `Bearer ${ctx.token}` } : {}),
       ...(prefer ? { Prefer: prefer } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -154,7 +155,9 @@ module.exports = async (req, res) => {
 
     if (CRON_SECRET && token === CRON_SECRET) {
       if (!SERVICE_KEY) return res.status(500).json({ ok: false, error: 'Variable SUPABASE_SERVICE_ROLE_KEY absente sur Vercel' });
-      ctx = { key: SERVICE_KEY, token: SERVICE_KEY };
+      // Nouvelle clé « sb_secret_… » : uniquement dans l'en-tête apikey (ce n'est pas un JWT).
+      // Ancienne clé service_role (JWT) : aussi en Bearer.
+      ctx = { key: SERVICE_KEY, token: SERVICE_KEY.startsWith('sb_') ? null : SERVICE_KEY };
       runners = await db(ctx, `runners?utmb_uri=not.is.null&select=${RUNNER_FIELDS}`);
     } else {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Méthode non autorisée' });
