@@ -256,3 +256,9 @@ ALTER TABLE runners ADD COLUMN IF NOT EXISTS utmb_synced_at TIMESTAMPTZ;
 -- Identifiant de la course côté UTMB : évite les doublons d'une synchro à l'autre
 ALTER TABLE races ADD COLUMN IF NOT EXISTS utmb_race_uri TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS races_runner_utmb_uniq ON races (runner_id, utmb_race_uri) WHERE utmb_race_uri IS NOT NULL;
+
+-- ============================================================
+-- v9 : INDEX UTMB DU COUREUR (rempli par la synchro UTMB)
+-- ex : {"general": 556, "20k": 557, "50k": 482, "100k": 425, "100m": null}
+-- ============================================================
+ALTER TABLE runners ADD COLUMN IF NOT EXISTS utmb_index JSONB;

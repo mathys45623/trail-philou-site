@@ -41,11 +41,25 @@
     .mini-right { margin-left: auto; text-align: right; font-family: var(--font-display); font-weight: 800; color: var(--rc); white-space: nowrap; }
     .rp-empty { color: var(--dim); background: var(--surface); border: 1px dashed var(--border-2); border-radius: var(--r-md); padding: 1.5rem; text-align: center; font-size: 0.92rem; }
     .not-found { text-align: center; padding: 6rem 1rem; }
+    .ix-grid { display: grid; grid-template-columns: minmax(200px, 1fr) 3fr; gap: 1rem; }
+    .ix-main { position: relative; overflow: hidden; border-radius: var(--r-lg); padding: 1.4rem 1.5rem; border: 1px solid color-mix(in srgb, var(--rc) 45%, transparent); background: linear-gradient(150deg, color-mix(in srgb, var(--rc) 24%, var(--surface)), var(--surface) 70%); display: flex; flex-direction: column; justify-content: center; }
+    .ix-main .v { font-family: var(--font-display); font-size: clamp(2.6rem, 5vw, 3.6rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--rc); }
+    .ix-main .l { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 0.5rem; font-weight: 600; }
+    .ix-cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .ix-cat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.1rem 1.2rem; }
+    .ix-cat .v { font-family: var(--font-display); font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+    .ix-cat .v.none { color: var(--dim); }
+    .ix-cat .l { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 0.4rem; font-weight: 600; }
+    .ix-bar { height: 4px; border-radius: 4px; background: var(--surface-3, rgba(255,255,255,0.08)); margin-top: 0.8rem; overflow: hidden; }
+    .ix-bar i { display: block; height: 100%; border-radius: 4px; background: var(--rc); }
+    .ix-note { font-size: 0.78rem; color: var(--dim); margin-top: 0.8rem; }
     @media (max-width: 900px) {
       .rp-hero { grid-template-columns: 1fr; padding: 2rem 1.25rem 1.5rem; gap: 1.75rem; }
       .rp-photo { width: min(220px, 60vw); }
       .rp-stats { grid-template-columns: repeat(2, 1fr); padding: 0 1.25rem; }
       .rp-section { padding: 2.5rem 1.25rem 0; }
+      .ix-grid { grid-template-columns: 1fr; }
+      .ix-cats { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -80,6 +94,21 @@
         <div class="mini-right">${right}</div>
       </a>`;
     };
+    // Index UTMB (rempli par la synchro UTMB) : général + une valeur par catégorie de distance
+    const ix = r.utmb_index && typeof r.utmb_index === 'object' ? r.utmb_index : null;
+    const ixVal = v => Number.isFinite(v) && v > 0 ? v : null;
+    const ixSection = ix && r.utmb_uri ? `
+      <section class="rp-section">
+        <div class="section-head"><h2>⚡ Index UTMB</h2><a class="btn btn-outline btn-sm" href="https://utmb.world/fr/runner/${encodeURIComponent(r.utmb_uri)}" target="_blank" rel="noopener">Voir sur UTMB →</a></div>
+        <div class="ix-grid">
+          <div class="ix-main"><div class="v">${ixVal(ix.general) ?? '—'}</div><div class="l">Index général</div></div>
+          <div class="ix-cats">${[['20k', '20K'], ['50k', '50K'], ['100k', '100K'], ['100m', '100M']].map(([k, l]) => {
+            const v = ixVal(ix[k]);
+            return `<div class="ix-cat"><div class="v${v ? '' : ' none'}">${v ?? '—'}</div><div class="l">Index ${l}</div><div class="ix-bar"><i style="width:${v ? Math.min(100, v / 10) : 0}%"></i></div></div>`;
+          }).join('')}</div>
+        </div>
+        <div class="ix-note">Performance sur 1000 calculée par UTMB à partir de ses meilleurs résultats${r.utmb_synced_at ? ` · mis à jour ${esc(fmtRelative(r.utmb_synced_at))}` : ''}. « — » = pas encore assez de courses dans cette catégorie.</div>
+      </section>` : '';
     const insta = r.instagram ? `https://www.instagram.com/${encodeURIComponent(r.instagram.replace(/^@/, ''))}` : null;
 
     page.innerHTML = `
@@ -102,6 +131,7 @@
         <div class="rp-stat"><div class="v" id="rpDplus"></div><div class="l">Mètres D+</div></div>
         <div class="rp-stat"><div class="v" id="rpYears"></div><div class="l">Années de trail</div></div>
       </div>
+      ${ixSection}
       <section class="rp-section">
         <div class="section-head"><h2>🗓️ Prochains objectifs</h2><a class="btn btn-outline btn-sm" href="prochaines-courses.html?r=${encodeURIComponent(r.slug)}">Tout voir →</a></div>
         ${next?.length ? `<div class="mini-list">${next.map(x => { const d = daysUntil(x.date); return mini(x, d === 0 ? 'Jour J' : 'J-' + d); }).join('')}</div>` : `<div class="rp-empty">Pas d'objectif programmé pour l'instant.</div>`}

@@ -180,7 +180,14 @@ async function syncRunner(ctx, runner) {
     }
   }
 
-  await db(ctx, `runners?id=eq.${runner.id}`, { method: 'PATCH', body: { utmb_synced_at: new Date().toISOString() }, prefer: 'return=minimal' });
+  // Index UTMB du coureur : { general, 20k, 50k, 100k, 100m } (null = pas encore d'index)
+  const runnerPatch = { utmb_synced_at: new Date().toISOString() };
+  if (Array.isArray(page.performanceIndexes)) {
+    runnerPatch.utmb_index = Object.fromEntries(page.performanceIndexes
+      .filter(p => /^[a-z0-9]{1,10}$/.test(p.piCategory || ''))
+      .map(p => [p.piCategory, Number.isFinite(p.index) ? p.index : null]));
+  }
+  await db(ctx, `runners?id=eq.${runner.id}`, { method: 'PATCH', body: runnerPatch, prefer: 'return=minimal' });
   return stats;
 }
 
