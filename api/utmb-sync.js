@@ -20,7 +20,9 @@ const CRON_SECRET = process.env.CRON_SECRET;
 
 const UTMB = 'https://utmb.world/fr';
 const UA = 'Mozilla/5.0 (compatible; TrailTeamSync/1.0)';
-const MAX_NEW_PER_RUN = 60;   // les suivantes arrivent à la synchro d'après (limite de durée Vercel)
+const MAX_NEW_PER_RUN = 40;        // les suivantes arrivent à la synchro d'après (limite de durée Vercel)
+const MAX_BACKFILL_PER_RUN = 25;   // courses existantes dont on va rechercher le logo / lieu
+const toArr = v => (Array.isArray(v) ? v.filter(Boolean) : []);
 const RUNNER_FIELDS = 'id,name,utmb_uri,utmb_since';
 
 // ─── SUPABASE (REST) ───
@@ -67,12 +69,22 @@ const fmtRank = r => r.rank ? `${r.rank} / ${r.totalRanked}` : null;
 const result = r => ({ finish_time: r.isDnf ? null : fmtTime(r.time), rank: r.isDnf ? null : fmtRank(r), dnf: !!r.isDnf });
 const num = v => (Number.isFinite(+v) && +v > 0 ? +v : null);
 
-// Infos de la course (logo, lieu de départ) : une requête par nouvelle course seulement
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const dayDiff = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) / 86400000;
+
+// Infos de la course (logo, lieu de départ). UTMB refuse parfois les requêtes trop
+// rapprochées : on réessaie 3 fois en espaçant. Échec = { ok: false }, on retentera
+// à la synchro suivante (voir « Rattrapage » plus bas).
 async function raceInfo(uri) {
-  try {
-    const p = await utmbPage(`utmb-index/races/${encodeURIComponent(uri)}`);
-    return { image_url: p?.logo || null, location: clean(p?.startPlace) || null };
-  } catch { return {}; }
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const p = await utmbPage(`utmb-index/races/${encodeURIComponent(uri)}`);
+      return { ok: true, image_url: p?.logo || null, location: clean(p?.startPlace) || null };
+    } catch (e) {
+      if (attempt >= 3) { console.warn(`UTMB course ${uri} : ${e.message}`); return { ok: false }; }
+      await sleep(1000 * attempt);
+    }
+  }
 }
 async function mapLimit(items, limit, fn) {
   const out = []; let i = 0;
@@ -91,7 +103,8 @@ async function syncRunner(ctx, runner) {
   const results = all.filter(r => r.uri && /^\d{4}-\d{2}-\d{2}$/.test(r.dateIso || '') && r.dateIso <= today
     && (!runner.utmb_since || r.dateIso >= runner.utmb_since) && (r.time || r.isDnf));
 
-  const existing = await db(ctx, `races?runner_id=eq.${runner.id}&select=id,type,date,utmb_race_uri,finish_time,rank,dnf,distance,dplus,country`);
+  const started = Date.now();
+  const existing = await db(ctx, `races?runner_id=eq.${runner.id}&select=id,type,date,utmb_race_uri,finish_time,rank,dnf,distance,dplus,country,location,image_url,images`);
   const byUri = new Map(existing.filter(e => e.utmb_race_uri).map(e => [e.utmb_race_uri, e]));
   const free = existing.filter(e => !e.utmb_race_uri);
   const stats = { added: 0, linked: 0, updated: 0, pending: 0 };
@@ -107,11 +120,16 @@ async function syncRunner(ctx, runner) {
       }
       continue;
     }
-    // Course déjà saisie à la main à la même date : on la relie et on complète les vides
-    const i = free.findIndex(e => e.date === r.dateIso && e.type === 'past');
-    const j = i >= 0 ? i : free.findIndex(e => e.date === r.dateIso);
+    // Course déjà saisie à la main à la même date (à un jour près : les dates UTMB et la saisie
+    // manuelle diffèrent parfois d'un jour) : on la relie et on complète les vides
+    let j = -1, best = 99;
+    free.forEach((e, k) => {
+      const d = dayDiff(e.date, r.dateIso) + (e.type === 'past' ? 0 : 0.5);   // priorité : même date, course terminée
+      if (d <= 1.5 && d < best) { best = d; j = k; }
+    });
     if (j >= 0) {
       const e = free.splice(j, 1)[0];
+      e.utmb_race_uri = r.uri;   // pour le rattrapage du logo / lieu plus bas
       const patch = { utmb_race_uri: r.uri, type: 'past', updated_at: new Date().toISOString() };
       if (e.type !== 'past' || (!e.finish_time && !e.rank && !e.dnf)) Object.assign(patch, result(r));
       if (e.distance == null) patch.distance = num(r.distance);
@@ -127,7 +145,7 @@ async function syncRunner(ctx, runner) {
   const batch = toInsert.slice(0, MAX_NEW_PER_RUN);
   stats.pending = toInsert.length - batch.length;
   if (batch.length) {
-    const infos = await mapLimit(batch, 4, r => raceInfo(r.uri));
+    const infos = await mapLimit(batch, 2, r => raceInfo(r.uri));
     const rows = batch.map((r, k) => {
       const distance = num(r.distance);
       return {
@@ -143,6 +161,23 @@ async function syncRunner(ctx, runner) {
     });
     await db(ctx, 'races', { method: 'POST', body: rows, prefer: 'return=minimal' });
     stats.added = rows.length;
+  }
+
+  // Rattrapage : courses UTMB sans image ni lieu (logo pas récupéré à l'import, ou course
+  // saisie à la main puis reliée). On complète seulement ce qui est vide, quelques-unes par
+  // synchro pour rester dans la limite de durée Vercel.
+  const missing = existing.filter(e => e.utmb_race_uri && ((!e.image_url && !toArr(e.images).length) || !e.location));
+  for (const e of missing.slice(0, MAX_BACKFILL_PER_RUN)) {
+    if (Date.now() - started > 40000) break;
+    const info = await raceInfo(e.utmb_race_uri);
+    if (!info.ok) continue;
+    const patch = {};
+    if (!e.image_url && !toArr(e.images).length && info.image_url) patch.image_url = info.image_url;
+    if (!e.location && info.location) patch.location = info.location;
+    if (Object.keys(patch).length) {
+      await db(ctx, `races?id=eq.${e.id}`, { method: 'PATCH', body: patch, prefer: 'return=minimal' });
+      stats.completed = (stats.completed || 0) + 1;
+    }
   }
 
   await db(ctx, `runners?id=eq.${runner.id}`, { method: 'PATCH', body: { utmb_synced_at: new Date().toISOString() }, prefer: 'return=minimal' });

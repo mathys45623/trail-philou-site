@@ -466,7 +466,7 @@
       const out = await res.json().catch(() => ({}));
       const rep = out.report?.[0];
       if (!res.ok || !rep || rep.error) throw new Error(rep?.error || out.error || `Erreur ${res.status}`);
-      const parts = [rep.added && `${rep.added} ajoutée(s)`, rep.linked && `${rep.linked} reliée(s)`, rep.updated && `${rep.updated} mise(s) à jour`].filter(Boolean);
+      const parts = [rep.added && `${rep.added} ajoutée(s)`, rep.linked && `${rep.linked} reliée(s)`, rep.updated && `${rep.updated} mise(s) à jour`, rep.completed && `${rep.completed} logo(s) / lieu(x) complété(s)`].filter(Boolean);
       toast(parts.length ? `UTMB : ${parts.join(', ')} ✅` : 'UTMB : déjà à jour ✅');
       if (rep.pending) toast(`${rep.pending} course(s) restante(s) : relance la synchro`, 'error');
       await loadRunners(true);
