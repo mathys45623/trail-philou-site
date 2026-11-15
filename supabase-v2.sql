@@ -242,3 +242,17 @@ ALTER TABLE materiel ADD COLUMN IF NOT EXISTS runner_id UUID REFERENCES runners(
 -- v7 : PAYS DES COURSES (code ISO à 2 lettres, ex : FR, CH)
 -- ============================================================
 ALTER TABLE races ADD COLUMN IF NOT EXISTS country TEXT CHECK (country ~ '^[A-Z]{2}$');
+
+-- ============================================================
+-- v8 : SYNCHRO AUTOMATIQUE DES COURSES DEPUIS UTMB WORLD
+-- La fonction Vercel /api/utmb-sync lit le profil UTMB de chaque coureur
+-- et ajoute ses courses terminées (sans jamais écraser ce qui est saisi à la main).
+-- ============================================================
+-- Identifiant du profil UTMB, ex : 2704.kilian.jornetburgada (fin de l'adresse utmb.world/fr/runner/…)
+ALTER TABLE runners ADD COLUMN IF NOT EXISTS utmb_uri TEXT CHECK (utmb_uri ~ '^[0-9]+\.[a-z0-9.-]{1,120}$');
+-- Courses UTMB plus anciennes que cette date ignorées (évite le double compte avec l'historique « avant le site »)
+ALTER TABLE runners ADD COLUMN IF NOT EXISTS utmb_since DATE;
+ALTER TABLE runners ADD COLUMN IF NOT EXISTS utmb_synced_at TIMESTAMPTZ;
+-- Identifiant de la course côté UTMB : évite les doublons d'une synchro à l'autre
+ALTER TABLE races ADD COLUMN IF NOT EXISTS utmb_race_uri TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS races_runner_utmb_uniq ON races (runner_id, utmb_race_uri) WHERE utmb_race_uri IS NOT NULL;

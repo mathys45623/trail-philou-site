@@ -115,6 +115,16 @@
               </div>
             </div>
 
+            <div class="modal-section">Synchro UTMB World</div>
+            <div class="form-group full"><div class="hint-box" style="margin:0">Colle l'adresse du profil <b>utmb.world</b> du coureur : ses courses terminées seront ajoutées <b>automatiquement chaque nuit</b> (nom, date, distance, D+, temps, classement, abandon, pays, logo). Ce que tu as saisi à la main n'est jamais écrasé. Seules les courses présentes dans l'UTMB Index sont importées, et les prochaines courses restent à saisir à la main.</div></div>
+            <div class="form-group"><label class="form-label" for="rpUtmb">Profil UTMB</label><input class="form-input" id="rpUtmb" placeholder="https://utmb.world/fr/runner/2704.prenom.nom" /></div>
+            <div class="form-group"><label class="form-label" for="rpUtmbSince">Importer à partir du</label><input class="form-input" type="date" id="rpUtmbSince" />
+              <div class="form-hint">Vide = tout l'historique. Si tu importes tout, remets à 0 les compteurs « avant le site » pour ne pas compter deux fois.</div></div>
+            <div class="form-group full" style="flex-direction:row;align-items:center;gap:.8rem;flex-wrap:wrap">
+              <button class="btn btn-outline btn-sm" type="button" id="btnUtmbSync">🔄 Synchroniser maintenant</button>
+              <span class="form-hint" id="utmbStatus" style="margin:0"></span>
+            </div>
+
             <div class="modal-section">Statistiques</div>
             <div class="form-group full"><div class="hint-box" style="margin:0">Les stats se calculent <b>automatiquement</b> à partir des courses terminées. Indique ici seulement l'<b>historique d'avant le site</b> (les courses que tu ne veux pas saisir une par une).</div></div>
             <div class="form-group"><label class="form-label" for="stRaces">Courses finies avant le site</label><input class="form-input" type="number" min="0" id="stRaces" /></div>
@@ -423,19 +433,62 @@
     $('stKm').value = r.km_before ?? 0;
     $('stDplus').value = r.dplus_before ?? 0;
     $('stStart').value = r.start_year ?? '';
+    $('rpUtmb').value = r.utmb_uri ? `https://utmb.world/fr/runner/${r.utmb_uri}` : '';
+    $('rpUtmbSince').value = r.utmb_since || '';
+    $('utmbStatus').textContent = r.utmb_synced_at ? `Dernière synchro ${fmtRelative(r.utmb_synced_at)}` : r.utmb_uri ? 'Pas encore synchronisé' : '';
     updatePreview();
   }
+
+  // ─── SYNCHRO UTMB ───
+  // Accepte l'adresse complète du profil ou juste « 2704.prenom.nom »
+  function parseUtmb(v) {
+    v = v.trim();
+    if (!v) return { uri: null };
+    const m = v.match(/(?:\/runner\/)?(\d+\.[a-z0-9.-]+?)\/?(?:[?#].*)?$/i);
+    return m ? { uri: m[1].toLowerCase() } : { error: 'Adresse UTMB non reconnue (ex : https://utmb.world/fr/runner/2704.prenom.nom)' };
+  }
+  $('btnUtmbSync').addEventListener('click', async () => {
+    const { uri, error } = parseUtmb($('rpUtmb').value);
+    if (error) return toast(error, 'error');
+    if (!uri) return toast('Colle d\'abord l\'adresse du profil UTMB', 'error');
+    const btn = $('btnUtmbSync');
+    busy(btn, true, 'Synchro en cours…');
+    try {
+      // On enregistre d'abord l'adresse et la date, au cas où elles viennent d'être saisies
+      const { error: e1 } = await sb.from('runners').update({ utmb_uri: uri, utmb_since: $('rpUtmbSince').value || null }).eq('id', runner.id);
+      if (e1) throw e1;
+      const { data: { session } } = await sb.auth.getSession();
+      const res = await fetch('/api/utmb-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+        body: JSON.stringify({ runner_id: runner.id }),
+      });
+      const out = await res.json().catch(() => ({}));
+      const rep = out.report?.[0];
+      if (!res.ok || !rep || rep.error) throw new Error(rep?.error || out.error || `Erreur ${res.status}`);
+      const parts = [rep.added && `${rep.added} ajoutée(s)`, rep.linked && `${rep.linked} reliée(s)`, rep.updated && `${rep.updated} mise(s) à jour`].filter(Boolean);
+      toast(parts.length ? `UTMB : ${parts.join(', ')} ✅` : 'UTMB : déjà à jour ✅');
+      if (rep.pending) toast(`${rep.pending} course(s) restante(s) : relance la synchro`, 'error');
+      await loadRunners(true);
+      runner = runnerById(runner.id);
+      loadProfil();
+    } catch (e) { toast('Synchro UTMB : ' + e.message, 'error'); }
+    busy(btn, false);
+  });
   $('btnSaveProfil').addEventListener('click', async () => {
     const name = $('rpName').value.trim();
     if (!name) return toast('Le prénom est obligatoire', 'error');
     const file = $('rpPhotoFile').files[0];
     if (file && !checkSize([file], MAX_IMG, 'image')) return;
+    const utmb = parseUtmb($('rpUtmb').value);
+    if (utmb.error) return toast(utmb.error, 'error');
     const btn = $('btnSaveProfil');
     busy(btn, true, 'Enregistrement…');
     try {
       const payload = {
         name, tagline: $('rpTagline').value.trim() || null, bio: $('rpBio').value.trim() || null,
         instagram: $('rpInsta').value.trim().replace(/^@/, '') || null, color: $('rpColor').value, ...statsForm(),
+        utmb_uri: utmb.uri, utmb_since: $('rpUtmbSince').value || null,
       };
       const old = runner.photo_url;
       if (file) payload.photo_url = await uploadImage(file, 'runners');
@@ -549,7 +602,7 @@
       const ni = toArr(r.images).length, nv = toArr(r.videos).length;
       return `<tr>
         <td style="width:60px">${thumb(r)}</td>
-        <td><strong>${esc(r.name)}</strong><div style="font-size:.78rem;color:var(--dim);display:flex;align-items:center;gap:.4rem;margin-top:.2rem">${flagImg(r.country, 16)}${esc([r.location, countryName(r.country)].filter(Boolean).join(' · '))}</div></td>
+        <td><strong>${esc(r.name)}</strong>${r.utmb_race_uri ? ' <span class="badge badge-blue" title="Importée depuis UTMB World">UTMB</span>' : ''}<div style="font-size:.78rem;color:var(--dim);display:flex;align-items:center;gap:.4rem;margin-top:.2rem">${flagImg(r.country, 16)}${esc([r.location, countryName(r.country)].filter(Boolean).join(' · '))}</div></td>
         <td style="white-space:nowrap">${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
         <td>${r.dnf ? '<span class="badge badge-dnf">🚩 Abandon</span>' : esc(r.finish_time || '—')}</td>
         <td>${esc(r.rank || '—')}</td>
